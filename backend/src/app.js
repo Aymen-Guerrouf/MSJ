@@ -16,11 +16,15 @@ const app = express();
 // Request logging with pino
 app.use(pinoHttp({ logger }));
 
-// Security headers
-app.use(helmet());
-
-// CORS configuration
+// CORS configuration - MUST come before helmet
 app.use(cors(config.cors));
+
+// Security headers - configured to not interfere with CORS
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 // Compression
 app.use(compression());
