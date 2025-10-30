@@ -54,7 +54,8 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
+    console.log(email , password);
+    
     // Find user and include password field
     const user = await User.findOne({ email }).select('+password');
 

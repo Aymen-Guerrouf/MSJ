@@ -2,23 +2,28 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import config from '../config/index.js';
 import { authenticate } from '../middleware/auth.middleware.js';
-import {
-  registerValidation,
-  loginValidation,
-  validate,
-  updatePasswordValidation,
-  forgotPasswordValidation,
-  resetPasswordValidation,
-} from '../middleware/validator.middleware.js';
-import {
-  register,
-  login,
-  getProfile,
-  logout,
-  updatePassword,
-  forgotPassword,
-  resetPassword,
-} from '../controllers/authController.js';
+
+//n7it hadou bzf imports lmithm kol f import wahd aprs just dir validation. asm la fonction t3k
+// import {
+//   registerValidation,
+//   loginValidation,
+//   validate,
+//   updatePasswordValidation,
+//   forgotPasswordValidation,
+//   resetPasswordValidation,
+// } from '../middleware/validator.middleware.js';
+import * as validation from '../middleware/validator.middleware.js'
+// import {
+//   register,
+//   login,
+//   getProfile,
+//   logout,
+//   updatePassword,
+//   forgotPassword,
+//   resetPassword,
+// } from '../controllers/authController.js';
+
+import * as authController from '../controllers/authController.js'
 
 const router = express.Router();
 
@@ -65,7 +70,7 @@ const authLimiter = rateLimit({
  *       400:
  *         description: Validation error or user already exists
  */
-router.post('/register', authLimiter, registerValidation, validate, register);
+router.post('/register', authLimiter, validation.registerValidation, validation.validate, authController.register);
 
 /**
  * @swagger
@@ -94,7 +99,7 @@ router.post('/register', authLimiter, registerValidation, validate, register);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', authLimiter, loginValidation, validate, login);
+router.post('/login', authLimiter, validation.loginValidation, validation.validate, authController.login);
 
 /**
  * @swagger
@@ -110,7 +115,7 @@ router.post('/login', authLimiter, loginValidation, validate, login);
  *       401:
  *         description: Not authenticated
  */
-router.get('/me', authenticate, getProfile);
+router.get('/me', authenticate, authController.getProfile);
 
 /**
  * @swagger
@@ -124,7 +129,7 @@ router.get('/me', authenticate, getProfile);
  *       200:
  *         description: Logout successful
  */
-router.post('/logout', authenticate, logout);
+router.post('/logout', authenticate, authController.logout);
 
 /**
  * @swagger
@@ -160,7 +165,7 @@ router.post('/logout', authenticate, logout);
  *       401:
  *         description: Not authenticated
  */
-router.put('/update-password', authenticate, updatePasswordValidation, validate, updatePassword);
+router.put('/update-password', authenticate, validation.updatePasswordValidation, validation.validate, authController.updatePassword);
 
 /**
  * @swagger
@@ -186,7 +191,7 @@ router.put('/update-password', authenticate, updatePasswordValidation, validate,
  *       404:
  *         description: User not found
  */
-router.post('/forgot-password', authLimiter, forgotPasswordValidation, validate, forgotPassword);
+router.post('/forgot-password', authLimiter, validation.forgotPasswordValidation, validation.validate, authController.forgotPassword);
 
 /**
  * @swagger
@@ -218,6 +223,6 @@ router.post('/forgot-password', authLimiter, forgotPasswordValidation, validate,
  *       400:
  *         description: Invalid or expired token
  */
-router.post('/reset-password', resetPasswordValidation, validate, resetPassword);
+router.post('/reset-password', validation.resetPasswordValidation, validation.validate, authController.resetPassword);
 
 export default router;
