@@ -28,6 +28,10 @@ const config = {
           ? process.env.CORS_ORIGIN.split(',')
           : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 600,
   },
 
   // Rate limiting
