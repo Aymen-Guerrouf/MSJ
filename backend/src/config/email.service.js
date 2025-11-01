@@ -95,7 +95,7 @@ The MSJ Team`;
                 We received a request to reset your password. Enter this code in the MSJ mobile app to create a new password:
               </p>
 
-              <!-- 6-Digit Code Display -->
+              <!-- 4-Digit Code Display -->
               <table role="presentation" style="width: 100%; margin: 30px 0;">
                 <tr>
                   <td style="text-align: center;">
@@ -204,7 +204,7 @@ The MSJ Team`;
                 Welcome to MSJ! Enter this verification code in the mobile app to complete your registration:
               </p>
 
-              <!-- 6-Digit Code Display -->
+              <!-- 4-Digit Code Display -->
               <table role="presentation" style="width: 100%; margin: 30px 0;">
                 <tr>
                   <td style="text-align: center;">

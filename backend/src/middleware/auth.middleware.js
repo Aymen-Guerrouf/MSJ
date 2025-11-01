@@ -92,4 +92,67 @@ const authorize = (...roles) => {
   };
 };
 
-export { authenticate, authorize };
+/**
+ * Middleware to check if user is admin
+ */
+const isAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+    });
+  }
+
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required',
+    });
+  }
+
+  next();
+};
+
+/**
+ * Middleware to check if user is super admin
+ */
+const isSuperAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+    });
+  }
+
+  if (req.user.role !== 'super_admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Super admin access required',
+    });
+  }
+
+  next();
+};
+
+/**
+ * Middleware to check if user is center admin
+ */
+const isCenterAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+    });
+  }
+
+  if (req.user.role !== 'center_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Center admin access required',
+    });
+  }
+
+  next();
+};
+
+export { authenticate, authorize, isAdmin, isSuperAdmin, isCenterAdmin };

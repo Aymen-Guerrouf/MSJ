@@ -1,7 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import config from '../config/index.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, isAdmin } from '../middleware/auth.middleware.js';
 
 //n7it hadou bzf imports lmithm kol f import wahd aprs just dir validation. asm la fonction t3k
 // import {
@@ -43,8 +43,8 @@ const authLimiter = rateLimit({
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a new user and send 6-digit verification code
- *     description: Sends a 6-digit verification code to the user's email. User must verify email before account is created in database.
+ *     summary: Register a new user and send 4-digit verification code
+ *     description: Sends a 4-digit verification code to the user's email. User must verify email before account is created in database. All registrations create regular users with 'user' role.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -69,6 +69,12 @@ const authLimiter = rateLimit({
  *                 type: string
  *                 minLength: 6
  *                 example: "SecurePass123"
+ *               age:
+ *                 type: integer
+ *                 minimum: 13
+ *                 maximum: 120
+ *                 example: 25
+ *                 description: Optional for regular users
  *     responses:
  *       200:
  *         description: Verification code sent successfully
@@ -82,7 +88,7 @@ const authLimiter = rateLimit({
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Verification code sent! Please check your email and enter the 6-digit code in the app."
+ *                   example: "Verification code sent! Please check your email and enter the 4-digit code in the app."
  *                 data:
  *                   type: object
  *                   properties:
@@ -215,7 +221,7 @@ router.put(
  * @swagger
  * /api/auth/forgot-password:
  *   post:
- *     summary: Request password reset with 6-digit code
+ *     summary: Request password reset with 4-digit code
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -243,7 +249,7 @@ router.put(
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "A 6-digit password reset code has been sent to your email."
+ *                   example: "A 4-digit password reset code has been sent to your email."
  *       404:
  *         description: User not found
  */
@@ -259,7 +265,7 @@ router.post(
  * @swagger
  * /api/auth/reset-password:
  *   post:
- *     summary: Reset password with 6-digit code
+ *     summary: Reset password with 4-digit code
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -274,9 +280,9 @@ router.post(
  *             properties:
  *               code:
  *                 type: string
- *                 description: 6-digit reset code from email
- *                 pattern: '^[0-9]{6}$'
- *                 example: "123456"
+ *                 description: 4-digit reset code from email
+ *                 pattern: '^[0-9]{4}$'
+ *                 example: "1234"
  *               password:
  *                 type: string
  *                 minLength: 6
@@ -315,7 +321,7 @@ router.post(
  * @swagger
  * /api/auth/verify-email:
  *   post:
- *     summary: Verify email with 6-digit code
+ *     summary: Verify email with 4-digit code
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -334,9 +340,9 @@ router.post(
  *                 example: user@example.com
  *               code:
  *                 type: string
- *                 description: 6-digit verification code from email
- *                 pattern: '^[0-9]{6}$'
- *                 example: "123456"
+ *                 description: 4-digit verification code from email
+ *                 pattern: '^[0-9]{4}$'
+ *                 example: "1234"
  *     responses:
  *       200:
  *         description: Email verified successfully and account created
@@ -390,8 +396,8 @@ router.post(
  * @swagger
  * /api/auth/resend-verification:
  *   post:
- *     summary: Resend 6-digit verification code
- *     description: Sends a new 6-digit verification code to the user's email
+ *     summary: Resend 4-digit verification code
+ *     description: Sends a new 4-digit verification code to the user's email
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -437,5 +443,34 @@ router.post(
   validation.validate,
   authController.resendVerification
 );
+
+/**
+ * @swagger
+ * /api/auth/admin/dashboard:
+ *   get:
+ *     summary: Get admin dashboard statistics (Admin only)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Admin dashboard data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Admin dashboard data"
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Not authorized - Admin access required
+ */
+router.get('/admin/dashboard', authenticate, isAdmin, authController.adminDashboard);
 
 export default router;

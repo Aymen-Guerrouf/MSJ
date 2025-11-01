@@ -23,6 +23,14 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Name is required'],
       trim: true,
     },
+    age: {
+      type: Number,
+      required: function () {
+        return this.role !== 'admin'; // Age not required for admins
+      },
+      min: [13, 'Age must be at least 13'],
+      max: [120, 'Age must be less than 120'],
+    },
     // Token version for refresh token rotation - increment to invalidate all tokens
     tokenVersion: {
       type: Number,
@@ -30,8 +38,14 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'center_admin', 'super_admin'],
       default: 'user',
+    },
+    // For center admins - which center they manage
+    managedCenterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Center',
+      default: null,
     },
     // Email verification fields
     isEmailVerified: {

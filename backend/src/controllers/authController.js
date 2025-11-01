@@ -3,9 +3,31 @@ import crypto from 'crypto';
 import User from '../models/user.model.js';
 import config from '../config/index.js';
 import { sendPasswordResetEmail, sendEmailVerification } from '../config/email.service.js';
+import logger from '../config/logger.config.js';
 
 // Temporary storage for pending registrations (in production, use Redis)
 const pendingRegistrations = new Map();
+
+/**
+ * Timing-safe comparison for hashed codes
+ * Prevents timing attacks that could leak information about the code
+ */
+const timingSafeCompare = (a, b) => {
+  if (!a || !b) return false;
+
+  try {
+    const bufferA = Buffer.from(a, 'hex');
+    const bufferB = Buffer.from(b, 'hex');
+
+    if (bufferA.length !== bufferB.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(bufferA, bufferB);
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Register a new user - Step 1: Send verification code
@@ -13,7 +35,7 @@ const pendingRegistrations = new Map();
  */
 export const register = async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, age } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -35,8 +57,8 @@ export const register = async (req, res, next) => {
       });
     }
 
-    // Generate 6-digit verification code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 4-digit verification code
+    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
 
     // Hash the code for storage
     const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
@@ -47,6 +69,7 @@ export const register = async (req, res, next) => {
       name,
       email,
       password, // Will be hashed when user is created
+      age,
       verificationCode: hashedCode,
       expiresAt,
       attempts: 0,
@@ -57,7 +80,7 @@ export const register = async (req, res, next) => {
       await sendEmailVerification({ name, email }, verificationCode);
     } catch (emailError) {
       pendingRegistrations.delete(email);
-      console.error('Failed to send verification email:', emailError);
+      logger.error('Failed to send verification email:', emailError);
       return res.status(500).json({
         success: false,
         message: 'Failed to send verification email. Please try again.',
@@ -67,7 +90,7 @@ export const register = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message:
-        'Verification code sent! Please check your email and enter the 6-digit code in the app.',
+        'Verification code sent! Please check your email and enter the 4-digit code in the app.',
       data: {
         email,
         expiresIn: 24 * 60 * 60, // 24 hours in seconds
@@ -104,8 +127,6 @@ export const login = async (req, res, next) => {
         message: 'Invalid email or password',
       });
     }
-
-    // Note: No need to check isEmailVerified since users only exist after verification
 
     // Generate token
     const token = jwt.sign(
@@ -204,7 +225,7 @@ export const updatePassword = async (req, res, next) => {
 };
 
 /**
- * Request password reset with 6-digit code
+ * Request password reset with 4-digit code
  */
 export const forgotPassword = async (req, res, next) => {
   try {
@@ -221,8 +242,8 @@ export const forgotPassword = async (req, res, next) => {
       });
     }
 
-    // Generate 6-digit reset code
-    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 4-digit reset code
+    const resetCode = Math.floor(1000 + Math.random() * 9000).toString();
     const hashedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
 
     // Store hashed code
@@ -231,12 +252,12 @@ export const forgotPassword = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     try {
-      // Send email with 6-digit code
+      // Send email with 4-digit code
       await sendPasswordResetEmail(user, resetCode);
 
       res.json({
         success: true,
-        message: 'A 6-digit password reset code has been sent to your email.',
+        message: 'A 4-digit password reset code has been sent to your email.',
       });
     } catch {
       // If email fails, clear reset code
@@ -252,7 +273,7 @@ export const forgotPassword = async (req, res, next) => {
 };
 
 /**
- * Reset password with 6-digit code
+ * Reset password with 4-digit code
  */
 export const resetPassword = async (req, res, next) => {
   try {
@@ -301,7 +322,7 @@ export const resetPassword = async (req, res, next) => {
 };
 
 /**
- * Verify email with 6-digit code - Step 2: Create user in database
+ * Verify email with 4-digit code - Step 2: Create user in database
  */
 export const verifyEmail = async (req, res, next) => {
   try {
@@ -351,10 +372,10 @@ export const verifyEmail = async (req, res, next) => {
       });
     }
 
-    // Hash the provided code and compare
+    // Hash the provided code and compare using timing-safe comparison
     const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
 
-    if (hashedCode !== pending.verificationCode) {
+    if (!timingSafeCompare(hashedCode, pending.verificationCode)) {
       pending.attempts += 1;
       return res.status(400).json({
         success: false,
@@ -364,12 +385,20 @@ export const verifyEmail = async (req, res, next) => {
     }
 
     // Code is valid! Create user in database
-    const user = new User({
+    const userData = {
       name: pending.name,
       email: pending.email,
       password: pending.password,
+      role: 'user', // All registrations are regular users
       isEmailVerified: true, // Already verified via code
-    });
+    };
+
+    // Only add age if it exists
+    if (pending.age !== undefined) {
+      userData.age = pending.age;
+    }
+
+    const user = new User(userData);
 
     await user.save();
 
@@ -432,8 +461,8 @@ export const resendVerification = async (req, res, next) => {
       });
     }
 
-    // Generate new 6-digit code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate new 4-digit code
+    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
     const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
 
     // Update pending registration
@@ -445,7 +474,7 @@ export const resendVerification = async (req, res, next) => {
     try {
       await sendEmailVerification({ name: pending.name, email }, verificationCode);
     } catch (emailError) {
-      console.error('Failed to resend verification email:', emailError);
+      logger.error('Failed to resend verification email:', emailError);
       return res.status(500).json({
         success: false,
         message: 'Failed to send verification email. Please try again.',
@@ -462,5 +491,41 @@ export const resendVerification = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * Admin dashboard - Example admin-only endpoint
+ */
+export const adminDashboard = async (req, res) => {
+  try {
+    // Get some stats (example)
+    const totalUsers = await User.countDocuments();
+    const adminUsers = await User.countDocuments({ role: 'admin' });
+    const verifiedUsers = await User.countDocuments({ isEmailVerified: true });
+
+    res.json({
+      success: true,
+      message: 'Admin dashboard data',
+      data: {
+        stats: {
+          totalUsers,
+          adminUsers,
+          regularUsers: totalUsers - adminUsers,
+          verifiedUsers,
+          unverifiedUsers: totalUsers - verifiedUsers,
+        },
+        adminInfo: {
+          name: req.user.name,
+          email: req.user.email,
+          role: req.user.role,
+        },
+      },
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admin dashboard',
+    });
   }
 };
