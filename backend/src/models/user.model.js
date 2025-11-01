@@ -33,8 +33,21 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    // Email verification fields
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationCode: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
     // Password reset fields
-    resetPasswordToken: {
+    resetPasswordCode: {
       type: String,
       select: false,
     },
@@ -75,18 +88,32 @@ userSchema.methods.incrementTokenVersion = async function () {
   return this.save();
 };
 
-// Method to create password reset token
-userSchema.methods.createPasswordResetToken = function () {
-  const resetToken = crypto.randomBytes(32).toString('hex');
+// Method to create password reset code (6-digit)
+userSchema.methods.createPasswordResetCode = function () {
+  const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // Hash token and save to database
-  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  // Hash code and save to database
+  this.resetPasswordCode = crypto.createHash('sha256').update(resetCode).digest('hex');
 
   // Set expiry (10 minutes)
   this.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
-  // Return unhashed token (to send in email)
-  return resetToken;
+  // Return unhashed code (to send in email)
+  return resetCode;
+};
+
+// Method to create email verification code (6-digit)
+userSchema.methods.createEmailVerificationCode = function () {
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Hash code and save to database
+  this.emailVerificationCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
+  // Set expiry (24 hours)
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+  // Return unhashed code (to send in email)
+  return verificationCode;
 };
 
 // Remove sensitive data when converting to JSON
@@ -94,8 +121,10 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.tokenVersion;
-  delete obj.resetPasswordToken;
+  delete obj.resetPasswordCode;
   delete obj.resetPasswordExpires;
+  delete obj.emailVerificationCode;
+  delete obj.emailVerificationExpires;
   delete obj.__v;
   return obj;
 };

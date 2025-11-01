@@ -63,14 +63,38 @@ const forgotPasswordValidation = [
 ];
 
 /**
- * Validation rules for reset password
+ * Validation rules for reset password with 6-digit code
  */
 const resetPasswordValidation = [
-  body('token').notEmpty().withMessage('Reset token is required'),
+  body('code')
+    .notEmpty()
+    .withMessage('Reset code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Reset code must be exactly 6 digits')
+    .isNumeric()
+    .withMessage('Reset code must contain only numbers'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-  body('confirmPassword')
-    .custom((value, { req }) => value === req.body.password)
-    .withMessage('Password confirmation does not match'),
+];
+
+/**
+ * Validation rules for email verification with 6-digit code
+ */
+const verifyEmailValidation = [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('code')
+    .notEmpty()
+    .withMessage('Verification code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Verification code must be exactly 6 digits')
+    .isNumeric()
+    .withMessage('Verification code must contain only numbers'),
+];
+
+/**
+ * Validation rules for resend verification
+ */
+const resendVerificationValidation = [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
 ];
 
 export {
@@ -80,4 +104,6 @@ export {
   updatePasswordValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  verifyEmailValidation,
+  resendVerificationValidation,
 };

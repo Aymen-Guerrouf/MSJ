@@ -2,10 +2,14 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import User from '../models/user.model.js';
 import config from '../config/index.js';
-import { sendPasswordResetEmail } from '../config/email.service.js';
+import { sendPasswordResetEmail, sendEmailVerification } from '../config/email.service.js';
+
+// Temporary storage for pending registrations (in production, use Redis)
+const pendingRegistrations = new Map();
 
 /**
- * Register a new user
+ * Register a new user - Step 1: Send verification code
+ * User is NOT created in database until email is verified
  */
 export const register = async (req, res, next) => {
   try {
@@ -20,27 +24,53 @@ export const register = async (req, res, next) => {
       });
     }
 
-    // Create user
-    const user = new User({ email, password, name });
-    await user.save();
+    // Check if there's a pending registration
+    const existingPending = pendingRegistrations.get(email);
+    if (existingPending && existingPending.expiresAt > Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'A verification code was already sent. Please check your email or wait before requesting a new one.',
+        retryAfter: Math.ceil((existingPending.expiresAt - Date.now()) / 1000),
+      });
+    }
 
-    // Generate token
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        tokenVersion: user.tokenVersion,
-      },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
-    );
+    // Generate 6-digit verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    res.status(201).json({
+    // Hash the code for storage
+    const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
+    // Store pending registration (expires in 24 hours)
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    pendingRegistrations.set(email, {
+      name,
+      email,
+      password, // Will be hashed when user is created
+      verificationCode: hashedCode,
+      expiresAt,
+      attempts: 0,
+    });
+
+    // Send verification email
+    try {
+      await sendEmailVerification({ name, email }, verificationCode);
+    } catch (emailError) {
+      pendingRegistrations.delete(email);
+      console.error('Failed to send verification email:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.',
+      });
+    }
+
+    res.status(200).json({
       success: true,
-      message: 'User registered successfully',
+      message:
+        'Verification code sent! Please check your email and enter the 6-digit code in the app.',
       data: {
-        user: user.toJSON(),
-        token,
-        expiresIn: config.jwt.expiresIn,
+        email,
+        expiresIn: 24 * 60 * 60, // 24 hours in seconds
       },
     });
   } catch (error) {
@@ -54,8 +84,7 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    console.log(email , password);
-    
+
     // Find user and include password field
     const user = await User.findOne({ email }).select('+password');
 
@@ -75,6 +104,8 @@ export const login = async (req, res, next) => {
         message: 'Invalid email or password',
       });
     }
+
+    // Note: No need to check isEmailVerified since users only exist after verification
 
     // Generate token
     const token = jwt.sign(
@@ -173,7 +204,7 @@ export const updatePassword = async (req, res, next) => {
 };
 
 /**
- * Request password reset email
+ * Request password reset with 6-digit code
  */
 export const forgotPassword = async (req, res, next) => {
   try {
@@ -186,25 +217,30 @@ export const forgotPassword = async (req, res, next) => {
       // Don't reveal if user exists or not (security best practice)
       return res.json({
         success: true,
-        message: 'If an account exists with this email, a password reset link has been sent.',
+        message: 'If an account exists with this email, a password reset code has been sent.',
       });
     }
 
-    // Generate reset token
-    const resetToken = user.createPasswordResetToken();
+    // Generate 6-digit reset code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+
+    // Store hashed code
+    user.resetPasswordCode = hashedCode;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save({ validateBeforeSave: false });
 
     try {
-      // Send email
-      await sendPasswordResetEmail(user, resetToken);
+      // Send email with 6-digit code
+      await sendPasswordResetEmail(user, resetCode);
 
       res.json({
         success: true,
-        message: 'Password reset link has been sent to your email.',
+        message: 'A 6-digit password reset code has been sent to your email.',
       });
     } catch {
-      // If email fails, clear reset token
-      user.resetPasswordToken = undefined;
+      // If email fails, clear reset code
+      user.resetPasswordCode = undefined;
       user.resetPasswordExpires = undefined;
       await user.save({ validateBeforeSave: false });
 
@@ -216,31 +252,31 @@ export const forgotPassword = async (req, res, next) => {
 };
 
 /**
- * Reset password with token
+ * Reset password with 6-digit code
  */
 export const resetPassword = async (req, res, next) => {
   try {
-    const { token, password } = req.body;
+    const { code, password } = req.body;
 
-    // Hash the token to match with database
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    // Hash the code to match with database
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
 
-    // Find user with valid token and not expired
+    // Find user with valid code and not expired
     const user = await User.findOne({
-      resetPasswordToken: hashedToken,
+      resetPasswordCode: hashedCode,
       resetPasswordExpires: { $gt: Date.now() },
-    }).select('+resetPasswordToken +resetPasswordExpires');
+    }).select('+resetPasswordCode +resetPasswordExpires');
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired reset token.',
+        message: 'Invalid or expired reset code.',
       });
     }
 
     // Update password
     user.password = password;
-    user.resetPasswordToken = undefined;
+    user.resetPasswordCode = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
@@ -250,6 +286,171 @@ export const resetPassword = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Password has been reset successfully. You can now login with your new password.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Verify email with 6-digit code - Step 2: Create user in database
+ */
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and verification code are required.',
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already verified and registered.',
+      });
+    }
+
+    // Get pending registration
+    const pending = pendingRegistrations.get(email);
+
+    if (!pending) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending registration found. Please register first.',
+      });
+    }
+
+    // Check if expired
+    if (pending.expiresAt < Date.now()) {
+      pendingRegistrations.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please register again.',
+      });
+    }
+
+    // Check rate limiting (max 5 attempts)
+    if (pending.attempts >= 5) {
+      pendingRegistrations.delete(email);
+      return res.status(429).json({
+        success: false,
+        message: 'Too many failed attempts. Please register again.',
+      });
+    }
+
+    // Hash the provided code and compare
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+
+    if (hashedCode !== pending.verificationCode) {
+      pending.attempts += 1;
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code.',
+        attemptsRemaining: 5 - pending.attempts,
+      });
+    }
+
+    // Code is valid! Create user in database
+    const user = new User({
+      name: pending.name,
+      email: pending.email,
+      password: pending.password,
+      isEmailVerified: true, // Already verified via code
+    });
+
+    await user.save();
+
+    // Remove pending registration
+    pendingRegistrations.delete(email);
+
+    // Generate auth token for immediate login
+    const authToken = jwt.sign(
+      {
+        userId: user._id,
+        tokenVersion: user.tokenVersion,
+      },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Email verified successfully! Your account has been created.',
+      data: {
+        user: user.toJSON(),
+        token: authToken,
+        expiresIn: config.jwt.expiresIn,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Resend email verification code
+ */
+export const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required.',
+      });
+    }
+
+    // Check if user already exists and is verified
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'This email is already verified and registered.',
+      });
+    }
+
+    // Check if there's a pending registration
+    const pending = pendingRegistrations.get(email);
+    if (!pending) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending registration found. Please register first.',
+      });
+    }
+
+    // Generate new 6-digit code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
+    // Update pending registration
+    pending.verificationCode = hashedCode;
+    pending.expiresAt = Date.now() + 24 * 60 * 60 * 1000; // Extend expiry by 24 hours
+    pending.attempts = 0; // Reset attempts
+
+    // Send new verification email
+    try {
+      await sendEmailVerification({ name: pending.name, email }, verificationCode);
+    } catch (emailError) {
+      console.error('Failed to resend verification email:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'A new verification code has been sent to your email.',
+      data: {
+        email,
+        expiresIn: 24 * 60 * 60,
+      },
     });
   } catch (error) {
     next(error);

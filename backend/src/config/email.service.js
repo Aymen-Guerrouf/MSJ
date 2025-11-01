@@ -1,166 +1,268 @@
 import nodemailer from 'nodemailer';
 import logger from './logger.config.js';
 
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
-    port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-};
+// Create Gmail SMTP transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
+
+// Verify connection configuration
+transporter.verify((error) => {
+  if (error) {
+    logger.error('Gmail SMTP connection error:', error);
+  } else {
+    logger.info('Gmail SMTP server is ready to send emails');
+  }
+});
 
 const sendEmail = async (options) => {
   try {
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || 'MSJ Hackathon API <noreply@msj.com>',
+    const info = await transporter.sendMail({
+      from: process.env.GMAIL_USER || 'MSJ Hackathon <noreply@msj.com>',
       to: options.email,
       subject: options.subject,
       text: options.message,
       html: options.html,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
+    });
 
     logger.info(
       {
         messageId: info.messageId,
         to: options.email,
+        provider: 'gmail',
       },
-      'Email sent successfully'
+      'Email sent successfully via Gmail'
     );
-
-    if (process.env.NODE_ENV !== 'production') {
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      if (previewUrl) {
-        logger.info(`Preview URL: ${previewUrl}`);
-      }
-    }
 
     return info;
   } catch (error) {
-    logger.error({ err: error }, 'Failed to send email');
+    logger.error({ err: error }, 'Failed to send email via Gmail');
     throw new Error('Email could not be sent');
   }
 };
 
-const sendPasswordResetEmail = async (user, resetToken) => {
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+const sendPasswordResetEmail = async (user, resetCode) => {
+  const text = `Hi ${user.name},
 
-  const message = `
-Hi ${user.name},
+We received a request to reset your password for your MSJ mobile app account.
 
-We received a request to reset your password for your MSJ account.
+Your password reset code is: ${resetCode}
 
-Click the link below to reset your password:
-${resetUrl}
+Enter this code in the mobile app to reset your password.
 
-This link will expire in 10 minutes for security reasons.
+⏱️ This code will expire in 10 minutes for security reasons.
 
-If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
+🔒 SECURITY NOTICE: Never share this code with anyone. MSJ support will never ask for your reset code.
+
+If you did not request this password reset, you can safely ignore this email. Your password will remain unchanged.
 
 Best regards,
-The MSJ Team
-  `;
+The MSJ Team`;
 
-  const html = `
-<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
     <tr>
-      <td align="center" style="padding: 40px 0;">
-        <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+      <td style="padding: 40px 20px; text-align: center;">
+        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
-                🔐 Password Reset
+            <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
+                🔐 Reset Your Password
               </h1>
             </td>
           </tr>
-          
+
+          <!-- Content -->
           <tr>
-            <td style="padding: 40px;">
-              <p style="margin: 0 0 16px; color: #333333; font-size: 16px; line-height: 24px;">
+            <td style="padding: 40px 30px;">
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
                 Hi <strong>${user.name}</strong>,
               </p>
               
-              <p style="margin: 0 0 24px; color: #555555; font-size: 15px; line-height: 24px;">
-                We received a request to reset your password for your MSJ account. Click the button below to create a new password:
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
+                We received a request to reset your password. Enter this code in the MSJ mobile app to create a new password:
               </p>
-              
-              <table role="presentation" style="margin: 32px 0; width: 100%;">
+
+              <!-- 6-Digit Code Display -->
+              <table role="presentation" style="width: 100%; margin: 30px 0;">
                 <tr>
-                  <td align="center">
-                    <a href="${resetUrl}" 
-                       style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
-                      Reset My Password
-                    </a>
+                  <td style="text-align: center;">
+                    <div style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px 40px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                      <p style="color: #ffffff; font-size: 14px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">
+                        Your Reset Code
+                      </p>
+                      <p style="color: #ffffff; font-size: 48px; font-weight: bold; margin: 0; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                        ${resetCode}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               </table>
-              
-              <p style="margin: 24px 0 0; color: #666666; font-size: 13px; line-height: 20px;">
-                Or copy and paste this link into your browser:
-              </p>
-              <p style="margin: 8px 0 0; padding: 12px; background-color: #f8f9fa; border-radius: 4px; color: #667eea; font-size: 13px; word-break: break-all; border: 1px solid #e9ecef;">
-                ${resetUrl}
-              </p>
-              
-              <table role="presentation" style="margin: 32px 0; width: 100%; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-                <tr>
-                  <td style="padding: 16px;">
-                    <p style="margin: 0; color: #856404; font-size: 14px; line-height: 20px;">
-                      ⏱️ <strong>This link will expire in 10 minutes</strong> for security reasons.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              
-              <p style="margin: 24px 0 0; color: #666666; font-size: 14px; line-height: 22px;">
-                If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
+
+              <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 30px 0 0; text-align: center;">
+                ⏱️ <strong>This code will expire in 10 minutes</strong>
               </p>
             </td>
           </tr>
-          
+
+          <!-- Warning Box -->
           <tr>
-            <td style="padding: 32px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-              <p style="margin: 0 0 8px; color: #999999; font-size: 13px; line-height: 20px;">
-                Best regards,<br>
-                <strong>The MSJ Team</strong>
+            <td style="padding: 0 30px 30px;">
+              <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; border-radius: 6px;">
+                <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
+                  🔒 <strong>Security Notice:</strong> Never share this code with anyone. MSJ support will never ask for your reset code. If you didn't request this, please ignore this email.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="color: #6c757d; font-size: 12px; margin: 0 0 10px;">
+                This is an automated message from MSJ Mobile App.
               </p>
-              <p style="margin: 16px 0 0; color: #aaaaaa; font-size: 12px; line-height: 18px;">
-                This is an automated message, please do not reply to this email.
+              <p style="color: #6c757d; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} MSJ. All rights reserved.
               </p>
             </td>
           </tr>
+
         </table>
-        
-        <p style="margin: 24px 0 0; color: #999999; font-size: 12px; text-align: center;">
-          © ${new Date().getFullYear()} MSJ. All rights reserved.
-        </p>
       </td>
     </tr>
   </table>
 </body>
-</html>
-  `;
+</html>`;
 
   await sendEmail({
     email: user.email,
     subject: '🔐 Reset Your MSJ Password',
-    message,
+    message: text,
     html,
   });
 };
 
-export { sendEmail, sendPasswordResetEmail };
+const sendEmailVerification = async (user, verificationCode) => {
+  const text = `Hi ${user.name},
+
+Welcome to MSJ! 
+
+Your verification code is: ${verificationCode}
+
+Enter this code in the mobile app to verify your email address and complete your registration.
+
+⏱️ This code will expire in 24 hours for security reasons.
+
+🔒 SECURITY NOTICE: Never share this code with anyone. MSJ support will never ask for your verification code.
+
+If you didn't create an account, you can safely ignore this email.
+
+Best regards,
+The MSJ Team`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 40px 20px; text-align: center;">
+        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
+                ✉️ Verify Your Email
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                Hi <strong>${user.name}</strong>,
+              </p>
+              
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
+                Welcome to MSJ! Enter this verification code in the mobile app to complete your registration:
+              </p>
+
+              <!-- 6-Digit Code Display -->
+              <table role="presentation" style="width: 100%; margin: 30px 0;">
+                <tr>
+                  <td style="text-align: center;">
+                    <div style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px 40px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                      <p style="color: #ffffff; font-size: 14px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">
+                        Your Verification Code
+                      </p>
+                      <p style="color: #ffffff; font-size: 48px; font-weight: bold; margin: 0; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                        ${verificationCode}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 30px 0 0; text-align: center;">
+                ⏱️ <strong>This code will expire in 24 hours</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Warning Box -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; border-radius: 6px;">
+                <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
+                  🔒 <strong>Security Notice:</strong> Never share this code with anyone. MSJ support will never ask for your verification code.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="color: #6c757d; font-size: 12px; margin: 0 0 10px;">
+                If you didn't create an account with MSJ, you can safely ignore this email.
+              </p>
+              <p style="color: #6c757d; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} MSJ. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await sendEmail({
+    email: user.email,
+    subject: '✉️ Verify Your MSJ Email Address',
+    message: text,
+    html,
+  });
+};
+
+export { sendEmail, sendPasswordResetEmail, sendEmailVerification };
