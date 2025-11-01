@@ -41,8 +41,8 @@ export const register = async (req, res, next) => {
     // Hash the code for storage
     const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
 
-    // Store pending registration (expires in 24 hours)
-    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    // Store pending registration (expires in 1 hour)
+    const expiresAt = Date.now() + 60 * 60 * 1000;
     pendingRegistrations.set(email, {
       name,
       email,
@@ -334,12 +334,12 @@ export const verifyEmail = async (req, res, next) => {
       });
     }
 
-    // Check rate limiting (max 5 attempts)
+    // Check rate limiting (max 5 attempts per code)
     if (pending.attempts >= 5) {
-      pendingRegistrations.delete(email);
       return res.status(429).json({
         success: false,
-        message: 'Too many failed attempts. Please register again.',
+        message: 'Too many failed attempts. Please request a new code.',
+        canResendCode: true,
       });
     }
 
