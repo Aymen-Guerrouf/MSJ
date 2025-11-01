@@ -11,7 +11,7 @@ const getBaseURL = () => {
 
   // For physical devices on the same network
   // Replace this IP with your computer's actual IP address
-  return "http://172.20.10.14:3000";
+  return "http://192.168.0.115:3000";
 
   // Alternative: Use Expo's development URL if using Expo Go
   // You can also get this dynamically from expo-constants
@@ -24,5 +24,11 @@ export const API_ENDPOINTS = {
     LOGIN: `${API_BASE_URL}/api/auth/login`,
     LOGOUT: `${API_BASE_URL}/api/auth/logout`,
     ME: `${API_BASE_URL}/api/auth/me`,
+    UPDATE_PASSWORD: `${API_BASE_URL}/api/auth/update-password`,
+    FORGOT_PASSWORD_REQUEST: `${API_BASE_URL}/api/auth/forgot-password`,
+    RESET_PASSWORD: `${API_BASE_URL}/api/auth/reset-password`,
+    VERIFY_EMAIL: `${API_BASE_URL}/api/auth/verify-email`,
+    RESEND_VERIFICATION: `${API_BASE_URL}/api/auth/resend-verification`,
+    VERIFY_RESET_CODE: `${API_BASE_URL}/api/auth/verify-email`,
   },
 };
