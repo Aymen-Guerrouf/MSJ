@@ -23,6 +23,37 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Name is required'],
       trim: true,
     },
+    age: {
+      type: Number,
+      required: function () {
+        return this.role !== 'admin'; // Age not required for admins
+      },
+      min: [13, 'Age must be at least 13'],
+      max: [120, 'Age must be less than 120'],
+    },
+    interests: [
+      {
+        type: String,
+        enum: [
+          'football',
+          'basketball',
+          'volleyball',
+          'chess',
+          'arts',
+          'music',
+          'theatre',
+          'coding',
+          'gaming',
+          'education',
+          'volunteering',
+          'culture',
+          'tech',
+          'health',
+          'design',
+          'other',
+        ],
+      },
+    ],
     // Token version for refresh token rotation - increment to invalidate all tokens
     tokenVersion: {
       type: Number,
@@ -30,8 +61,14 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'center_admin', 'super_admin'],
       default: 'user',
+    },
+    // For center admins - which center they manage
+    managedCenterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Center',
+      default: null,
     },
     // Email verification fields
     isEmailVerified: {
@@ -115,6 +152,31 @@ userSchema.methods.createEmailVerificationCode = function () {
   // Return unhashed code (to send in email)
   return verificationCode;
 };
+
+// Virtual populate for user's club memberships
+userSchema.virtual('myClubs', {
+  ref: 'ClubMembership',
+  localField: '_id',
+  foreignField: 'userId',
+});
+
+// Virtual populate for user's event registrations
+userSchema.virtual('myEvents', {
+  ref: 'EventRegistration',
+  localField: '_id',
+  foreignField: 'userId',
+});
+
+// Virtual populate for user's workshop enrollments
+userSchema.virtual('myWorkshops', {
+  ref: 'WorkshopEnrollment',
+  localField: '_id',
+  foreignField: 'userId',
+});
+
+// Enable virtuals in toJSON and toObject
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 // Remove sensitive data when converting to JSON
 userSchema.methods.toJSON = function () {

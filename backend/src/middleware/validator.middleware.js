@@ -32,6 +32,10 @@ const registerValidation = [
     .withMessage('Name is required')
     .isLength({ min: 2 })
     .withMessage('Name must be at least 2 characters long'),
+  body('age')
+    .optional()
+    .isInt({ min: 13, max: 120 })
+    .withMessage('Age must be a number between 13 and 120'),
 ];
 
 /**
@@ -63,14 +67,14 @@ const forgotPasswordValidation = [
 ];
 
 /**
- * Validation rules for reset password with 6-digit code
+ * Validation rules for reset password with 4-digit code
  */
 const resetPasswordValidation = [
   body('code')
     .notEmpty()
     .withMessage('Reset code is required')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('Reset code must be exactly 6 digits')
+    .isLength({ min: 4, max: 4 })
+    .withMessage('Reset code must be exactly 4 digits')
     .isNumeric()
     .withMessage('Reset code must contain only numbers'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
@@ -80,15 +84,15 @@ const resetPasswordValidation = [
 ];
 
 /**
- * Validation rules for email verification with 6-digit code
+ * Validation rules for email verification with 4-digit code
  */
 const verifyEmailValidation = [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('code')
     .notEmpty()
     .withMessage('Verification code is required')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('Verification code must be exactly 6 digits')
+    .isLength({ min: 4, max: 4 })
+    .withMessage('Verification code must be exactly 4 digits')
     .isNumeric()
     .withMessage('Verification code must contain only numbers'),
 ];
