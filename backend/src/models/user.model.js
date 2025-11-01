@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema(
           'culture',
           'tech',
           'health',
+          'design',
           'other',
         ],
       },
