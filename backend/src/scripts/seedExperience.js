@@ -22,12 +22,13 @@ const seedExperience = async () => {
     // Create experience session
     const session = await ExperienceSession.create({
       title: 'Youth Leadership Workshop - December 2025',
-      description: 'A transformative session focused on developing leadership skills among young people through interactive activities and group discussions.',
+      description:
+        'A transformative session focused on developing leadership skills among young people through interactive activities and group discussions.',
       date: '2025-12-15',
       time: '14:00',
       tag: 'leadership',
       centerId: center._id,
-      createdBy: admin._id
+      createdBy: admin._id,
     });
 
     console.log('✅ Created session:', session.title);
@@ -35,18 +36,19 @@ const seedExperience = async () => {
     // Create experience card linked to session
     const card = await ExperienceCard.create({
       title: 'Key Learnings from Youth Leadership Workshop',
-      summary: 'Our December leadership workshop brought together 30 young participants who explored essential leadership qualities. Through team-building exercises, role-playing scenarios, and peer discussions, participants discovered their unique leadership styles. The session emphasized the importance of active listening, empathy, and collaborative decision-making. Many participants reported increased confidence in their ability to lead group projects and initiatives in their communities.',
+      summary:
+        'Our December leadership workshop brought together 30 young participants who explored essential leadership qualities. Through team-building exercises, role-playing scenarios, and peer discussions, participants discovered their unique leadership styles. The session emphasized the importance of active listening, empathy, and collaborative decision-making. Many participants reported increased confidence in their ability to lead group projects and initiatives in their communities.',
       lessons: [
         'Effective leadership starts with understanding yourself and your values',
         'Active listening is more powerful than speaking',
         'Teamwork and collaboration achieve better results than individual efforts',
         'Empathy builds trust and strengthens group dynamics',
-        'Every young person has leadership potential waiting to be developed'
+        'Every young person has leadership potential waiting to be developed',
       ],
       tag: 'leadership',
       centerId: center._id,
       sessionId: session._id,
-      createdBy: admin._id
+      createdBy: admin._id,
     });
 
     console.log('✅ Created card:', card.title);
