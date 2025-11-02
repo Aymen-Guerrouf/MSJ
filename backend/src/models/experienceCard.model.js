@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const ExperienceCardSchema = new mongoose.Schema({
   title: { type: String, required: true },
+  host: { type: String, required: true },
   summary: { type: String, required: true, maxlength: 800 },
   lessons: [{ type: String }],
   tag: { type: String },
