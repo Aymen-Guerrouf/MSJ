@@ -64,6 +64,40 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'center_admin', 'super_admin'],
       default: 'user',
     },
+    isMentor: {
+      type: Boolean,
+      default: false,
+    },
+    mentorBio: {
+      type: String,
+      default: null,
+      maxlength: [500, 'Mentor bio cannot exceed 500 characters'],
+    },
+    mentorExpertise: [
+      {
+        type: String,
+        enum: [
+          'football',
+          'basketball',
+          'volleyball',
+          'chess',
+          'arts',
+          'music',
+          'theatre',
+          'coding',
+          'gaming',
+          'education',
+          'volunteering',
+          'culture',
+          'tech',
+          'health',
+          'entrepreneurship',
+          'design',
+          'marketing',
+          'other',
+        ],
+      },
+    ],
     // For center admins - which center they manage
     managedCenterId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -175,6 +209,27 @@ userSchema.virtual('myWorkshops', {
   ref: 'WorkshopEnrollment',
   localField: '_id',
   foreignField: 'userId',
+});
+
+// Virtual populate for user's startup ideas
+userSchema.virtual('myStartupIdeas', {
+  ref: 'StartupIdea',
+  localField: '_id',
+  foreignField: 'owner',
+});
+
+// Virtual populate for mentorship requests (as mentor)
+userSchema.virtual('mentorshipRequests', {
+  ref: 'MentorshipRequest',
+  localField: '_id',
+  foreignField: 'mentor',
+});
+
+// Virtual populate for mentorship requests (as mentee)
+userSchema.virtual('myMentorshipRequests', {
+  ref: 'MentorshipRequest',
+  localField: '_id',
+  foreignField: 'mentee',
 });
 
 // Enable virtuals in toJSON and toObject

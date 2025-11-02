@@ -16,6 +16,9 @@ const WORKSHOP_CATEGORIES = [
   'culture',
   'tech',
   'health',
+  'entrepreneurship',
+  'design',
+  'marketing',
   'other',
 ];
 

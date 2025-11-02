@@ -89,6 +89,50 @@ const options = {
         name: 'System',
         description: 'System health and monitoring',
       },
+      {
+        name: 'Centers',
+        description: 'Youth center management',
+      },
+      {
+        name: 'Events',
+        description: 'Event management',
+      },
+      {
+        name: 'Workshops',
+        description: 'Workshop management',
+      },
+      {
+        name: 'Clubs',
+        description: 'Club management',
+      },
+      {
+        name: 'Participation',
+        description: 'User participation (instant join system)',
+      },
+      {
+        name: 'Experience Sharing',
+        description: 'Experience sessions and cards',
+      },
+      {
+        name: 'Virtual School',
+        description: 'Educational video content',
+      },
+      {
+        name: 'Startup Space',
+        description: 'Startup ideas and entrepreneurship',
+      },
+      {
+        name: 'Learning Resources',
+        description: 'Curated learning materials',
+      },
+      {
+        name: 'Mentorship',
+        description: 'Mentor-mentee connections',
+      },
+      {
+        name: 'Users',
+        description: 'User management',
+      },
     ],
   },
   apis: ['./src/routes/*.js'], // Path to route files with JSDoc comments
