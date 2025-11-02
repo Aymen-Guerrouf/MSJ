@@ -10,6 +10,7 @@ import clubMembershipRoutes from './clubMembership.routes.js';
 import clubRoutes from './club.routes.js';
 import experienceSessionRoutes from './experienceSession.routes.js';
 import experienceCardRoutes from './experienceCard.routes.js';
+import virtualSchoolRoutes from './virtualSchool.routes.js';
 
 const router = express.Router();
 
@@ -25,5 +26,6 @@ router.use('/club-memberships', clubMembershipRoutes);
 router.use('/clubs', clubRoutes);
 router.use('/experience-sessions', experienceSessionRoutes);
 router.use('/experience-cards', experienceCardRoutes);
+router.use('/virtual-school', virtualSchoolRoutes);
 
 export default router;

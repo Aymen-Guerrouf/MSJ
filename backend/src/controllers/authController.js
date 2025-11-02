@@ -108,10 +108,11 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and include password field
+    // Find user and include password field - use lean() for faster query
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
+      // Use same response for invalid email to prevent user enumeration
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
@@ -138,11 +139,18 @@ export const login = async (req, res, next) => {
       { expiresIn: config.jwt.expiresIn }
     );
 
+    // Return minimal user data for faster response
     res.json({
       success: true,
       message: 'Login successful',
       data: {
-        user: user.toJSON(),
+        user: {
+          _id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          managedCenterId: user.managedCenterId,
+        },
         token,
         expiresIn: config.jwt.expiresIn,
       },
