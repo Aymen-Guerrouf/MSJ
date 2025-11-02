@@ -9,19 +9,20 @@ import logger from '../config/logger.config.js';
 const authenticate = async (req, res, next) => {
   try {
     // Get token from header
-    const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = req.cookies.token;
+    console.log(333, req.cookies.token);
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: 'No token provided. Authorization header must be in format: Bearer <token>',
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
     // Verify token
     const decoded = jwt.verify(token, config.jwt.secret);
+    console.log(decoded);
 
     // Check if user still exists
     const user = await User.findById(decoded.userId);

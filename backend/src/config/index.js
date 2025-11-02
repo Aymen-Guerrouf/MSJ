@@ -27,7 +27,9 @@ const config = {
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
-
+  cookie: {
+    expiresIn: process.env.COOKIE_EXPIRES_IN || '7',
+  },
   // CORS
   cors: {
     origin:
@@ -48,7 +50,7 @@ const config = {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 minutes
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
   },
-
+  hf_key: { key: process.env.GROQ_API_KEY },
   authRateLimit: {
     windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
     max: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS, 10) || 5,
