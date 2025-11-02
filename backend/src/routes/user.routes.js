@@ -1,7 +1,7 @@
 import express from 'express';
-import { updateUserInfo, getHomeInfo, deleteUser } from '../controllers/userController.js';
+import { updateUserInfo, getHomeInfo, deleteUser, getAdminDashboard , getSuperAdminDashboard } from '../controllers/userController.js';
 import { handleChat, getChatbotInfo } from '../controllers/chatbotController.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate ,authorize} from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -163,5 +163,8 @@ router.patch('/updateUser', authenticate, updateUserInfo);
  *         description: Unauthorized
  */
 router.delete('/deleteUser', authenticate, deleteUser);
+
+router.get('/admin/dashboard',authenticate , authorize('center_admin'), getAdminDashboard)
+router.get('/superadmin/dashboard',authenticate , authorize('admin'), getSuperAdminDashboard)
 
 export default router;

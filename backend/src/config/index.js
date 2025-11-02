@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 
 dotenv.config();
+console.log(process.env.JWT_SECRET);
 
 // Validate required environment variables
 if (!process.env.JWT_SECRET) {

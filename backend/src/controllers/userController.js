@@ -1,4 +1,6 @@
 import User from '../models/user.model.js';
+import Event from '../models/event.model.js';
+import Club from '../models/club.model.js'
 import { client, rqs } from '../services/recombeeClient.js';
 import { getRecommendations } from '../services/recommendationService.js';
 
@@ -35,3 +37,40 @@ export const deleteUser = async (req, res) => {
     success: true,
   });
 };
+
+export const getAdminDashboard = async(req,res,next)=>{
+  try {
+    const userCount = await User.find({role : 'user'}, {_id :0 , createdAt :1 , });
+    const eventCount = await Event.find({centerId : req.user.managedCenterId});
+    const clubcount = await Club.find({centerId : req.user.managedCenterId});
+
+    return res.status(200).json({
+      userCount,
+      eventCount,
+      clubcount,
+      
+    })
+  } catch (error) {
+    console.log(error);
+    
+  }
+}
+
+export const getSuperAdminDashboard = async (req,res,next)=>{
+  try {
+    const userscount = await User.find({role : 'user'})
+    const centerscount = await centerModel.find()
+    const clubscount = await Club.find()
+    const eventscount = await Event.find()
+
+    return res.status(200).json({
+      userscount,
+      centerscount,
+      clubscount,
+      eventscount
+    })
+  } catch (error) {
+    console.log(error);
+    
+  }
+}
