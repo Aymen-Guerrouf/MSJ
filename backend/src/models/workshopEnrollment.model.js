@@ -14,15 +14,15 @@ const workshopEnrollmentSchema = new mongoose.Schema(
     },
     fullName: {
       type: String,
-      required: true,
+      required: false, // Auto-populated from user
     },
     phone: {
       type: String,
-      required: true,
+      required: false, // Auto-populated from user
     },
     age: {
       type: Number,
-      required: true,
+      required: false, // Auto-populated from user
     },
     paymentStatus: {
       type: String,

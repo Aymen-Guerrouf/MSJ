@@ -6,7 +6,7 @@ import Event from '../models/event.model.js';
  */
 export const registerForEvent = async (req, res, next) => {
   try {
-    const { eventId, fullName, phone, age } = req.body;
+    const { eventId } = req.body;
 
     // Validate event exists
     const event = await Event.findById(eventId);
@@ -38,13 +38,13 @@ export const registerForEvent = async (req, res, next) => {
       });
     }
 
-    // Create registration - instant join
+    // Create registration - instant join using authenticated user's data
     const registration = await EventRegistration.create({
       userId: req.user._id,
       eventId,
-      fullName,
-      phone,
-      age,
+      fullName: req.user.name,
+      phone: req.user.phone || '0000000000', // Use user's phone or placeholder
+      age: req.user.age,
     });
 
     const populatedRegistration = await EventRegistration.findById(registration._id)

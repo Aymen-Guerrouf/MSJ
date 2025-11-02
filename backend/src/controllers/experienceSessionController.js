@@ -2,9 +2,9 @@ import ExperienceSession from '../models/experienceSession.model.js';
 
 export const createSession = async (req, res, next) => {
   try {
-    const { title, description, date, time, tag, centerId } = req.body;
+    const { title, host, description, date, time, tag, centerId } = req.body;
 
-    if (!title || !date || !time || !centerId) {
+    if (!title || !host || !date || !time || !centerId) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -23,6 +23,7 @@ export const createSession = async (req, res, next) => {
 
     const session = await ExperienceSession.create({
       title,
+      host,
       description,
       date,
       time,

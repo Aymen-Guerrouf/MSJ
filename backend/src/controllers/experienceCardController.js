@@ -2,9 +2,9 @@ import ExperienceCard from '../models/experienceCard.model.js';
 
 export const createCard = async (req, res, next) => {
   try {
-    const { title, summary, lessons, tag, centerId, sessionId } = req.body;
+    const { title, host, summary, lessons, tag, centerId, sessionId } = req.body;
 
-    if (!title || !summary) {
+    if (!title || !host || !summary) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -23,6 +23,7 @@ export const createCard = async (req, res, next) => {
 
     const card = await ExperienceCard.create({
       title,
+      host,
       summary,
       lessons: lessons || [],
       tag,
