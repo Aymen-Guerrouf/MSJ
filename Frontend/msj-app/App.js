@@ -8,6 +8,7 @@ import VerifyCode from "./src/auth/signup/VerifyCode";
 import HomeTab from "./src/Home/HomeTab";
 import ForgotPassword from "./src/auth/forgot/ForgotPassword";
 import ResetPassword from "./src/auth/forgot/ResetPassword";
+import AdminPanel from "./src/admin/AdminPanel";
 
 const Stack = createNativeStackNavigator();
 
@@ -22,6 +23,7 @@ export default function App() {
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="VerifyCode" component={VerifyCode} />
         <Stack.Screen name="HomeTab" component={HomeTab} />
+        <Stack.Screen name="AdminPanel" component={AdminPanel} />
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
         <Stack.Screen name="ResetPassword" component={ResetPassword} />
       </Stack.Navigator>

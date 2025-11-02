@@ -24,7 +24,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       [
@@ -32,7 +35,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "We need your location to show nearby youth centers, clubs, and events."
         }
-      ]
+      ],
+      "expo-video"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

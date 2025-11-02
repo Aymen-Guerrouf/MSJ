@@ -92,9 +92,20 @@ export default function SignIn() {
             JSON.stringify(data.data.user)
           );
         }
-      }
 
-      navigation.replace("HomeTab", { userCoords: coords });
+        // Check user role and navigate accordingly
+        const userRole = data.data.user?.role;
+
+        if (userRole === "super_admin" || userRole === "center_admin") {
+          // Navigate to Admin screen
+          navigation.replace("AdminPanel");
+        } else {
+          // Navigate to regular user home
+          navigation.replace("HomeTab", { userCoords: coords });
+        }
+      } else {
+        throw new Error("Authentication failed");
+      }
     } catch (err) {
       setServerError(err?.message || "Sign in failed");
     }

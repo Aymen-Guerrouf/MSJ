@@ -9,9 +9,9 @@ import {
   Dimensions,
   ScrollView,
   Image,
+  Alert,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
-import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
@@ -19,81 +19,28 @@ const { width, height } = Dimensions.get("window");
 const VideoPlayerScreen = ({ route, navigation }) => {
   const { lesson } = route.params;
   const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState({});
   const videoRef = useRef(null);
 
-  // Convert YouTube URL to video ID
-  const getVideoId = (url) => {
-    let videoId = "";
+  // Ensure video URL is mobile-compatible
+  const getMobileCompatibleUrl = (url) => {
+    if (!url) return url;
 
-    if (url.includes("youtube.com/watch?v=")) {
-      videoId = url.split("v=")[1].split("&")[0];
-    } else if (url.includes("youtu.be/")) {
-      videoId = url.split("youtu.be/")[1].split("?")[0];
+    // If it's a Cloudinary URL, ensure it has mobile-compatible transformations
+    if (url.includes("cloudinary.com")) {
+      // Check if transformations already exist
+      if (!url.includes("f_mp4") && !url.includes("vc_h264")) {
+        // Add mobile-compatible transformations
+        return url.replace("/upload/", "/upload/f_mp4,vc_h264,ac_aac,q_auto/");
+      }
     }
-
-    return videoId;
+    return url;
   };
 
-  const videoId = getVideoId(lesson.videoUrl);
-  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-
-  // Create HTML with embedded YouTube player for expo-av WebView
-  const youtubeHTML = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <style>
-          * { margin: 0; padding: 0; }
-          body { 
-            background-color: #000;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-          }
-          #player { 
-            width: 100vw;
-            height: 56.25vw; /* 16:9 aspect ratio */
-            max-height: 100vh;
-            max-width: 177.78vh; /* 16:9 aspect ratio */
-          }
-        </style>
-      </head>
-      <body>
-        <div id="player"></div>
-        <script>
-          var tag = document.createElement('script');
-          tag.src = "https://www.youtube.com/iframe_api";
-          var firstScriptTag = document.getElementsByTagName('script')[0];
-          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-          var player;
-          function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-              videoId: '${videoId}',
-              playerVars: {
-                'playsinline': 1,
-                'rel': 0,
-                'modestbranding': 1,
-                'controls': 1,
-              },
-              events: {
-                'onReady': onPlayerReady,
-              }
-            });
-          }
-
-          function onPlayerReady(event) {
-            window.ReactNativeWebView?.postMessage('ready');
-          }
-        </script>
-      </body>
-    </html>
-  `;
+  const videoUrl = getMobileCompatibleUrl(lesson.videoUrl);
 
   const formatDuration = (seconds) => {
+    if (!seconds) return "0:00";
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
@@ -129,7 +76,7 @@ const VideoPlayerScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* YouTube Video Player */}
+        {/* Cloudinary Video Player */}
         <View style={styles.videoContainer}>
           {isLoading && (
             <View style={styles.loadingContainer}>
@@ -137,21 +84,26 @@ const VideoPlayerScreen = ({ route, navigation }) => {
               <Text style={styles.loadingText}>Loading video...</Text>
             </View>
           )}
-          <WebView
+          <Video
             ref={videoRef}
-            style={styles.webview}
-            source={{ html: youtubeHTML }}
-            allowsFullscreenVideo={true}
-            allowsInlineMediaPlayback={true}
-            mediaPlaybackRequiresUserAction={false}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            scrollEnabled={false}
-            onLoadEnd={() => setIsLoading(false)}
-            onMessage={(event) => {
-              if (event.nativeEvent.data === "ready") {
-                setIsLoading(false);
-              }
+            style={styles.video}
+            source={{ uri: videoUrl }}
+            useNativeControls
+            resizeMode={ResizeMode.CONTAIN}
+            isLooping={false}
+            onPlaybackStatusUpdate={(status) => setStatus(() => status)}
+            onLoadStart={() => setIsLoading(true)}
+            onLoad={() => setIsLoading(false)}
+            onError={(error) => {
+              console.error("Video error:", error);
+              console.error("Video URL:", videoUrl);
+              setIsLoading(false);
+              // Show user-friendly error
+              Alert.alert(
+                "Playback Error",
+                "Unable to play this video. The video format may not be compatible. Please try uploading the video again or contact support.",
+                [{ text: "OK" }]
+              );
             }}
           />
         </View>
@@ -162,55 +114,63 @@ const VideoPlayerScreen = ({ route, navigation }) => {
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryText}>{lesson.category}</Text>
             </View>
-            <View
-              style={[
-                styles.difficultyBadge,
-                {
-                  backgroundColor:
-                    lesson.difficulty === "Beginner"
-                      ? "#d1fae5"
-                      : lesson.difficulty === "Intermediate"
-                      ? "#fef3c7"
-                      : "#fecaca",
-                },
-              ]}
-            >
-              <Text
+            {lesson.difficulty && (
+              <View
                 style={[
-                  styles.difficultyText,
+                  styles.difficultyBadge,
                   {
-                    color:
+                    backgroundColor:
                       lesson.difficulty === "Beginner"
-                        ? "#10b981"
+                        ? "#d1fae5"
                         : lesson.difficulty === "Intermediate"
-                        ? "#f59e0b"
-                        : "#ef4444",
+                        ? "#fef3c7"
+                        : "#fecaca",
                   },
                 ]}
               >
-                {lesson.difficulty}
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    styles.difficultyText,
+                    {
+                      color:
+                        lesson.difficulty === "Beginner"
+                          ? "#10b981"
+                          : lesson.difficulty === "Intermediate"
+                          ? "#f59e0b"
+                          : "#ef4444",
+                    },
+                  ]}
+                >
+                  {lesson.difficulty}
+                </Text>
+              </View>
+            )}
           </View>
 
           <Text style={styles.title}>{lesson.title}</Text>
-          <Text style={styles.description}>{lesson.description}</Text>
+          <Text style={styles.description}>
+            {lesson.description || "No description available"}
+          </Text>
 
           {/* Tags */}
-          <View style={styles.tagsContainer}>
-            {lesson.tags.map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>#{tag}</Text>
-              </View>
-            ))}
-          </View>
+          {lesson.tags && lesson.tags.length > 0 && (
+            <View style={styles.tagsContainer}>
+              {lesson.tags.map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>#{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="heart-outline" size={24} color="#6366f1" />
-              <Text style={styles.actionText}>Like ({lesson.likes})</Text>
-            </TouchableOpacity>
+            {lesson.likes && (
+              <TouchableOpacity style={styles.actionButton}>
+                <Ionicons name="heart-outline" size={24} color="#6366f1" />
+                <Text style={styles.actionText}>Like ({lesson.likes})</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.actionButton}>
               <Ionicons name="bookmark-outline" size={24} color="#6366f1" />
               <Text style={styles.actionText}>Save</Text>
@@ -278,7 +238,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
     position: "relative",
   },
-  webview: {
+  video: {
     width: "100%",
     height: "100%",
     backgroundColor: "#000",
@@ -298,44 +258,6 @@ const styles = StyleSheet.create({
     color: "white",
     marginTop: 12,
     fontSize: 14,
-  },
-  thumbnail: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  playOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-  },
-  playButtonLarge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 0, 0, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  playText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
   },
   infoContainer: {
     backgroundColor: "white",

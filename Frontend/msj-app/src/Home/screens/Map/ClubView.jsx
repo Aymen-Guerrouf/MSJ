@@ -17,7 +17,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
-// import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, apiCall } from "../../../config/api";
 
 const TEAL = "rgba(107,174,151,1)";
 const MINT = "rgba(150,214,195,1)";
@@ -29,9 +29,6 @@ export default function ClubView() {
   const { params } = useRoute();
   const club = params?.club;
   const center = params?.center;
-
-  // Example: get userID from your auth store/context
-  const userID = params?.userID || "u_demo_001";
 
   const [joinOpen, setJoinOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -48,17 +45,15 @@ export default function ClubView() {
   const onSubmitJoin = async () => {
     try {
       setLoading(true);
-      // const res = await fetch(API_ENDPOINTS.CLUBS.JOIN, {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ clubID: club._id || club.id, userID, note }),
-      // });
-      // const data = await res.json().catch(() => null);
-      // if (!res.ok) throw new Error(data?.message || "Unable to join club");
-      await new Promise((r) => setTimeout(r, 800)); // mock
+      const res = await apiCall(API_ENDPOINTS.CLUBS.JOIN_REQUEST, {
+        method: "POST",
+        body: JSON.stringify({ clubId: club._id || club.id, note }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Unable to submit join request");
       setJoinOpen(false);
       setNote("");
-      Alert.alert("Request sent", "Your join request has been submitted.");
+      Alert.alert("Request sent", "Your join request has been submitted successfully.");
     } catch (err) {
       Alert.alert("Error", err?.message || "Failed to send request");
     } finally {
@@ -196,17 +191,6 @@ export default function ClubView() {
         <View style={styles.sheet}>
           <View style={styles.sheetGrab} />
           <Text style={styles.sheetTitle}>Join {club.name}</Text>
-          <View style={styles.inputWrap}>
-            <Text style={styles.label}>User ID</Text>
-            <View style={styles.readonly}>
-              <Ionicons
-                name="person-circle-outline"
-                color="#6D8B99"
-                size={18}
-              />
-              <Text style={styles.readonlyText}>{userID}</Text>
-            </View>
-          </View>
           <View style={styles.inputWrap}>
             <Text style={styles.label}>Note (optional)</Text>
             <TextInput

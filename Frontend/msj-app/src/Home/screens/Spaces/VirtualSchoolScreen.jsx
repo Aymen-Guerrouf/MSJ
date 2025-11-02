@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   Image,
   Dimensions,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import mockData from "../../../data/mockSpacesData.json";
+import { API_ENDPOINTS, apiCall } from "../../../config/api";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -18,30 +20,62 @@ const CARD_WIDTH = (width - 48) / 2;
 const VirtualSchoolScreen = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const { virtualSchool } = mockData;
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = [
     "All",
-    "Technology",
-    "Life Skills",
-    "Business",
-    "Arts",
-    "Health",
-    "Science",
-    "Environment",
+    "coding",
+    "language",
+    "career",
+    "health",
+    "entrepreneurship",
+    "design",
+    "marketing",
+    "other",
   ];
+
+  useEffect(() => {
+    fetchVideos();
+  }, [selectedCategory]);
+
+  const fetchVideos = async () => {
+    try {
+      setLoading(true);
+      const url =
+        selectedCategory === "All"
+          ? API_ENDPOINTS.VIRTUAL_SCHOOL.LIST
+          : `${API_ENDPOINTS.VIRTUAL_SCHOOL.LIST}?category=${selectedCategory}`;
+
+      const response = await apiCall(url);
+      const data = await response.json();
+
+      if (data.success && data.data.videos) {
+        setVideos(data.data.videos);
+      } else {
+        Alert.alert("Error", "Failed to fetch videos");
+      }
+    } catch (error) {
+      console.error("Error fetching videos:", error);
+      Alert.alert("Error", "Unable to load videos. Please try again.");
+      setVideos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDuration = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
   };
 
-  const filteredLessons = virtualSchool.filter((lesson) => {
+  const filteredLessons = videos.filter((video) => {
     const matchesCategory =
-      selectedCategory === "All" || lesson.category === selectedCategory;
+      selectedCategory === "All" || video.category === selectedCategory;
     const matchesSearch =
-      lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
+      video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (video.description &&
+        video.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -64,58 +98,67 @@ const VirtualSchoolScreen = ({ navigation }) => {
 
   const renderVideoCard = (lesson) => (
     <TouchableOpacity
-      key={lesson.id}
+      key={lesson._id}
       style={styles.videoCard}
       onPress={() => openVideo(lesson)}
       activeOpacity={0.7}
     >
-      <Image source={{ uri: lesson.thumbnailUrl }} style={styles.thumbnail} />
+      <Image
+        source={{
+          uri:
+            lesson.thumbnailUrl ||
+            "https://via.placeholder.com/400x300?text=Video",
+        }}
+        style={styles.thumbnail}
+      />
       <View style={styles.playOverlay}>
         <View style={styles.playButton}>
           <Ionicons name="play" size={32} color="white" />
         </View>
       </View>
-      <View style={styles.durationBadge}>
-        <Text style={styles.durationText}>
-          {formatDuration(lesson.duration)}
-        </Text>
-      </View>
+      {lesson.duration && (
+        <View style={styles.durationBadge}>
+          <Text style={styles.durationText}>
+            {formatDuration(lesson.duration)}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.videoInfo}>
         <Text style={styles.videoTitle} numberOfLines={2}>
           {lesson.title}
         </Text>
         <Text style={styles.videoDescription} numberOfLines={2}>
-          {lesson.description}
+          {lesson.description || "No description"}
         </Text>
 
         <View style={styles.videoMeta}>
           <View style={styles.metaItem}>
             <Ionicons name="eye-outline" size={14} color="#64748b" />
-            <Text style={styles.metaText}>{lesson.views}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="heart-outline" size={14} color="#64748b" />
-            <Text style={styles.metaText}>{lesson.likes}</Text>
+            <Text style={styles.metaText}>{lesson.views || 0}</Text>
           </View>
         </View>
 
         <View style={styles.videoFooter}>
-          <View
-            style={[
-              styles.difficultyBadge,
-              { backgroundColor: getDifficultyColor(lesson.difficulty) + "15" },
-            ]}
-          >
-            <Text
+          {lesson.difficulty && (
+            <View
               style={[
-                styles.difficultyText,
-                { color: getDifficultyColor(lesson.difficulty) },
+                styles.difficultyBadge,
+                {
+                  backgroundColor: getDifficultyColor(lesson.difficulty) + "15",
+                },
               ]}
             >
-              {lesson.difficulty}
-            </Text>
-          </View>
+              <Text
+                style={[
+                  styles.difficultyText,
+                  { color: getDifficultyColor(lesson.difficulty) },
+                ]}
+              >
+                {lesson.difficulty}
+              </Text>
+            </View>
+          )}
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryText}>{lesson.category}</Text>
           </View>
@@ -183,16 +226,35 @@ const VirtualSchoolScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.resultsHeader}>
-          <Text style={styles.resultsText}>
-            {filteredLessons.length}{" "}
-            {filteredLessons.length === 1 ? "lesson" : "lessons"}
-          </Text>
-        </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#6366f1" />
+            <Text style={styles.loadingText}>Loading videos...</Text>
+          </View>
+        ) : filteredLessons.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="videocam-outline" size={64} color="#cbd5e1" />
+            <Text style={styles.emptyTitle}>No videos found</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery
+                ? "Try adjusting your search"
+                : "No videos available in this category"}
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsText}>
+                {filteredLessons.length}{" "}
+                {filteredLessons.length === 1 ? "lesson" : "lessons"}
+              </Text>
+            </View>
 
-        <View style={styles.videoGrid}>
-          {filteredLessons.map(renderVideoCard)}
-        </View>
+            <View style={styles.videoGrid}>
+              {filteredLessons.map(renderVideoCard)}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -398,6 +460,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     color: "#475569",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#64748b",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1e293b",
+    marginTop: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#64748b",
+    marginTop: 8,
+    textAlign: "center",
   },
 });
 

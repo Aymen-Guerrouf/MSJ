@@ -58,6 +58,10 @@ export const API_ENDPOINTS = {
   POSTS: {
     LIST: `${API_BASE_URL}/api/posts`,
   },
+  VIRTUAL_SCHOOL: {
+    LIST: `${API_BASE_URL}/api/virtual-school`,
+    GET: (id) => `${API_BASE_URL}/api/virtual-school/${id}`,
+  },
 };
 
 // Helper function to get auth headers
