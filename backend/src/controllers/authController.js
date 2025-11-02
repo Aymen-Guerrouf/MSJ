@@ -138,6 +138,15 @@ export const login = async (req, res, next) => {
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn }
     );
+    console.log('ddd' + config.cookie.expiresIn);
+
+    // sending token in the cookies
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: config.env === 'production',
+      sameSite: 'strict',
+      maxAge: config.cookie.expiresIn *24*60*60* 1000,
+    });
 
     // Return minimal user data for faster response
     res.json({
@@ -164,6 +173,8 @@ export const login = async (req, res, next) => {
  * Get current user profile
  */
 export const getProfile = async (req, res) => {
+  console.log(req.user);
+
   res.json({
     success: true,
     data: {

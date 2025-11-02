@@ -10,7 +10,7 @@ import logger from './config/logger.config.js';
 import routes from './routes/index.js';
 import setupSwagger from './docs/swagger.config.js';
 import { errorHandler, notFound } from './middleware/errorHandler.middleware.js';
-import { enforceHTTPS } from './middleware/security.middleware.js';
+import cookieParser from 'cookie-parser'
 
 const app = express();
 
@@ -22,7 +22,7 @@ app.use(pinoHttp({ logger }));
 
 // CORS configuration - MUST come before helmet
 app.use(cors(config.cors));
-
+app.use(cookieParser())
 // Security headers - configured to not interfere with CORS
 app.use(
   helmet({
