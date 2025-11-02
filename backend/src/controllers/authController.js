@@ -107,6 +107,7 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    console.log(email);
 
     // Find user and include password field
     const user = await User.findOne({ email }).select('+password');
@@ -144,7 +145,7 @@ export const login = async (req, res, next) => {
       httpOnly: true,
       secure: config.env === 'production',
       sameSite: 'strict',
-      maxAge: config.cookie.expiresIn *24*60*60* 1000,
+      maxAge: config.cookie.expiresIn * 24 * 60 * 60 * 1000,
     });
 
     res.json({
@@ -182,7 +183,7 @@ export const logout = async (req, res, next) => {
   try {
     // Increment token version to invalidate all existing tokens
     await req.user.incrementTokenVersion();
-
+    // res.clearCookie('token');
     res.json({
       success: true,
       message: 'Logout successful. All tokens have been invalidated.',

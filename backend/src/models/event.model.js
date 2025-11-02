@@ -62,6 +62,11 @@ const eventSchema = new Schema(
       ref: 'User',
       required: true,
     },
+    participantIds : {
+      type : [Schema.Types.ObjectId],
+      ref : 'User',
+      default : []
+    }
   },
   { timestamps: true }
 );

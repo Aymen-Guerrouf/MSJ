@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 
 dotenv.config();
+console.log(process.env.JWT_SECRET);
 
 // Validate required environment variables
 if (!process.env.JWT_SECRET) {
@@ -55,7 +56,7 @@ const config = {
     windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
     max: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS, 10) || 5,
   },
-
+  CHARGILY_API_KEY: process.env.CHARGILY_API_KEY,
   // Loggi
   log: {
     level: process.env.LOG_LEVEL || 'info',

@@ -15,7 +15,7 @@ import cookieParser from 'cookie-parser'
 const app = express();
 
 // Enforce HTTPS in production
-app.use(enforceHTTPS);
+// app.use(enforceHTTPS);
 
 // Request logging with pino
 app.use(pinoHttp({ logger }));
