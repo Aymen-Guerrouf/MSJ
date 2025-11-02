@@ -6,7 +6,7 @@ import Workshop from '../models/workshop.model.js';
  */
 export const enrollInWorkshop = async (req, res, next) => {
   try {
-    const { workshopId, fullName, phone, age } = req.body;
+    const { workshopId } = req.body;
 
     // Validate workshop exists
     const workshop = await Workshop.findById(workshopId);
@@ -38,13 +38,13 @@ export const enrollInWorkshop = async (req, res, next) => {
       });
     }
 
-    // Create enrollment - instant join
+    // Create enrollment - instant join using authenticated user's data
     const enrollment = await WorkshopEnrollment.create({
       userId: req.user._id,
       workshopId,
-      fullName,
-      phone,
-      age,
+      fullName: req.user.name,
+      phone: req.user.phone || '0000000000',
+      age: req.user.age,
       paymentStatus: workshop.price > 0 ? 'pending' : 'paid',
     });
 
