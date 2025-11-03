@@ -1,7 +1,6 @@
 import User from '../models/user.model.js';
 import Event from '../models/event.model.js';
 import Club from '../models/club.model.js';
-import Club from '../models/club.model.js';
 import { getRecommendations } from '../services/recommendationService.js';
 
 export const getHomeInfo = async (req, res) => {
@@ -21,7 +20,6 @@ export const updateUserInfo = async (req, res) => {
   const updatedData = req.body;
 
   //update the use document
-  await User.findByIdAndUpdate(req.user._id, updatedData, { new: true });
   await User.findByIdAndUpdate(req.user._id, updatedData, { new: true });
 
   return res.status(204).json({
@@ -102,11 +100,44 @@ export const deleteUser = async (req, res) => {
   });
 };
 
-export const getAdminDashboard = async(req,res,next)=>{
+export const getUserById = async (req, res) => {
   try {
+<<<<<<< HEAD
+    console.log(req.user);
+    
     const userCount = await User.find({role : 'user'}, {_id :0 , createdAt :1 , });
     const eventCount = await Event.find({centerId : req.user.managedCenterId});
     const clubcount = await Club.find({centerId : req.user.managedCenterId});
+=======
+    const { id } = req.params;
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user',
+      error: error.message,
+    });
+  }
+};
+
+export const getAdminDashboard = async (req, res) => {
+  try {
+    const userCount = await User.find({ role: 'user' }, { _id: 0, createdAt: 1 });
+    const eventCount = await Event.find({ centerId: req.user.managedCenterId });
+    const clubcount = await Club.find({ centerId: req.user.managedCenterId });
+>>>>>>> 1a3c10ee815f16ccd0399623c734112eb1ded6ef
 
     return res.status(200).json({
       userCount,
