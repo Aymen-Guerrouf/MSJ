@@ -69,8 +69,14 @@ export default function AdminPanel({ navigation }) {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("access_token");
-      await AsyncStorage.removeItem("user_data");
+      await AsyncStorage.multiRemove([
+        "access_token",
+        "user_data",
+        "user",
+        "user_coords",
+        "token_expires_at",
+        "last_login_at",
+      ]);
       navigation.replace("SignIn");
     } catch (error) {
       Alert.alert("Error", "Failed to logout");

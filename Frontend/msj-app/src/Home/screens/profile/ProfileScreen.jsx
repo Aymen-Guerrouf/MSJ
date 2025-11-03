@@ -33,6 +33,28 @@ export default function ProfileScreen() {
       const userJson = await AsyncStorage.getItem("user_data");
       const user = userJson ? JSON.parse(userJson) : null;
       console.log("Loaded user data:", user);
+
+      // If no user data in storage, fetch from API
+      if (!user) {
+        try {
+          const response = await apiCall(API_ENDPOINTS.USER.ME);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              setUserData(data.data);
+              // Store for future use
+              await AsyncStorage.setItem(
+                "user_data",
+                JSON.stringify(data.data)
+              );
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user from API:", error);
+        }
+      }
+
       setUserData(user);
     } catch (error) {
       console.error("Error loading user data:", error);

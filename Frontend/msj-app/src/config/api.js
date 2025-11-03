@@ -24,7 +24,7 @@ const getBaseURL = () => {
   } catch (e) {}
 
   // For physical devices on the same network: change this to your machine's IP
-  return "http://192.168.0.115:3001";
+  return "http://192.168.43.145:3001";
 
   // Alternative: Use Expo's development URL if using Expo Go
   // You can also get this dynamically from expo-constants
@@ -122,8 +122,14 @@ export async function apiCall(url, options = {}) {
 
 // Helper to clear auth data on logout
 export async function clearAuthData() {
-  await AsyncStorage.removeItem("access_token");
-  await AsyncStorage.removeItem("user_data");
+  await AsyncStorage.multiRemove([
+    "access_token",
+    "user_data",
+    "user",
+    "user_coords",
+    "token_expires_at",
+    "last_login_at",
+  ]);
 }
 
 // Helper to get user data

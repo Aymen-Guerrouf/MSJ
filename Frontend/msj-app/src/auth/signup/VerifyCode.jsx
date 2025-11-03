@@ -52,11 +52,21 @@ export default function VerifyCode() {
 
       const data = await res.json();
 
+      // Clear any old data first to ensure fresh state
+      await AsyncStorage.multiRemove([
+        "access_token",
+        "user_data",
+        "user",
+        "user_coords",
+        "token_expires_at",
+        "last_login_at",
+      ]);
+
       // Store the token after successful verification
       if (data.success && data.data?.token) {
         await AsyncStorage.setItem("access_token", data.data.token);
 
-        // Optionally store user data
+        // Store ONLY the new user data - ensure it's a fresh user object
         if (data.data.user) {
           await AsyncStorage.setItem(
             "user_data",
