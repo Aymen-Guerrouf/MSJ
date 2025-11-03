@@ -1,6 +1,7 @@
 import User from '../models/user.model.js';
 import Event from '../models/event.model.js';
 import Club from '../models/club.model.js';
+import Club from '../models/club.model.js';
 import { getRecommendations } from '../services/recommendationService.js';
 
 export const getHomeInfo = async (req, res) => {
@@ -20,6 +21,7 @@ export const updateUserInfo = async (req, res) => {
   const updatedData = req.body;
 
   //update the use document
+  await User.findByIdAndUpdate(req.user._id, updatedData, { new: true });
   await User.findByIdAndUpdate(req.user._id, updatedData, { new: true });
 
   return res.status(204).json({
@@ -100,7 +102,7 @@ export const deleteUser = async (req, res) => {
   });
 };
 
-export const getUserById = async (req, res) => {
+export const getAdminDashboard = async(req,res,next)=>{
   try {
     const { id } = req.params;
     const user = await User.findById(id);
