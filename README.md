@@ -68,7 +68,68 @@ s
 
 ---
 
-## 🚀 Core Features
+## � App Screenshots
+
+<div align="center">
+
+### Mobile Application Interface
+
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <img src="https://i.imgur.com/placeholder1.png" alt="Login Screen" width="200"/>
+      <br />
+      <b>Secure Login</b>
+      <br />
+      <sub>Email/Phone authentication</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="https://i.imgur.com/placeholder2.png" alt="Workshop Details" width="200"/>
+      <br />
+      <b>Event Details</b>
+      <br />
+      <sub>AI & Machine Learning Workshop</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="https://i.imgur.com/placeholder3.png" alt="Spaces" width="200"/>
+      <br />
+      <b>Spaces</b>
+      <br />
+      <sub>Sharing, Virtual School, Sparks Hub</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="https://i.imgur.com/placeholder4.png" alt="Virtual School" width="200"/>
+      <br />
+      <b>Virtual School</b>
+      <br />
+      <sub>Video lessons & tutorials</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <img src="https://i.imgur.com/placeholder5.png" alt="Youth Center" width="200"/>
+      <br />
+      <b>Youth Centers</b>
+      <br />
+      <sub>Location & contact info</sub>
+    </td>
+  </tr>
+</table>
+
+**Key Features Shown:**
+
+- 🔐 **Authentication:** Secure login with email/phone
+- 📅 **Events:** Workshops with registration and pricing
+- 🎓 **Virtual School:** Educational video content library
+- 🏢 **Youth Centers:** Interactive maps and 360° tours
+- 💡 **Sparks Hub:** Startup ideas and mentorship
+- 🤝 **Sharing Experiences:** Community knowledge base
+
+</div>
+
+---
+
+## �🚀 Core Features
 
 ### 👥 User Management System
 
