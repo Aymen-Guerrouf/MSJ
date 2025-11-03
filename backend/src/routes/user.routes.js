@@ -1,7 +1,16 @@
 import express from 'express';
-import { updateUserInfo, getHomeInfo, deleteUser, getAdminDashboard , getSuperAdminDashboard } from '../controllers/userController.js';
+import {
+  updateUserInfo,
+  getHomeInfo,
+  deleteUser,
+  getAdminDashboard,
+  getSuperAdminDashboard,
+  getUserById,
+  updateUserInterests,
+} from '../controllers/userController.js';
 import { handleChat, getChatbotInfo } from '../controllers/chatbotController.js';
-import { authenticate ,authorize} from '../middleware/auth.middleware.js';
+import { getAllSupervisors } from '../controllers/startupIdeaController.js';
+import { authenticate, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -149,6 +158,38 @@ router.patch('/updateUser', authenticate, updateUserInfo);
 
 /**
  * @swagger
+ * /api/user/interests:
+ *   patch:
+ *     summary: Update user interests
+ *     description: Allows the authenticated user to update their interests for personalized recommendations
+ *     tags: [User]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               interests:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [football, basketball, volleyball, chess, arts, music, theatre, coding, gaming, education, volunteering, culture, tech, health, design, other]
+ *                 example: ["coding", "tech", "gaming"]
+ *     responses:
+ *       200:
+ *         description: Interests updated successfully
+ *       400:
+ *         description: Invalid data
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch('/interests', authenticate, updateUserInterests);
+
+/**
+ * @swagger
  * /api/user/deleteUser:
  *   delete:
  *     summary: Delete user account
@@ -164,7 +205,9 @@ router.patch('/updateUser', authenticate, updateUserInfo);
  */
 router.delete('/deleteUser', authenticate, deleteUser);
 
-router.get('/admin/dashboard',authenticate , authorize('center_admin'), getAdminDashboard)
-router.get('/superadmin/dashboard',authenticate , authorize('admin'), getSuperAdminDashboard)
+router.get('/admin/dashboard', authenticate, authorize('center_admin'), getAdminDashboard);
+router.get('/superadmin/dashboard', authenticate, authorize('admin'), getSuperAdminDashboard);
+router.get('/supervisors', getAllSupervisors);
+router.get('/:id', authenticate, getUserById);
 
 export default router;

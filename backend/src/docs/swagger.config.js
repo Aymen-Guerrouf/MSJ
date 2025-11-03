@@ -122,6 +122,10 @@ const options = {
         description: 'Startup ideas and entrepreneurship',
       },
       {
+        name: 'Project Requests',
+        description: 'Supervision request management for startup projects',
+      },
+      {
         name: 'Learning Resources',
         description: 'Curated learning materials',
       },

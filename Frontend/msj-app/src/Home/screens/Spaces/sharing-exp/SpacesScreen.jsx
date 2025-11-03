@@ -34,12 +34,12 @@ const SpacesScreen = ({ navigation }) => {
     },
     {
       id: 3,
-      title: "Startup Hub",
-      subtitle: "Build Your Dreams",
-      icon: "rocket-outline",
-      gradient: ["#06b6d4", "#0891b2", "#0e7490"],
-      description: "Resources for entrepreneurs",
-      screen: "StartupHub",
+      title: "Sparks Hub",
+      subtitle: "Ignite Your Innovation",
+      icon: "bulb-outline",
+      gradient: ["#17a2b8", "#138496"],
+      description: "Share startup ideas & get mentored",
+      screen: "SparksHub",
     },
   ];
 

@@ -2,18 +2,13 @@ import express from 'express';
 import {
   createStartupIdea,
   getAllStartupIdeas,
-  getMyStartupIdeas,
   getStartupIdeaById,
-  updateStartupIdea,
-  deleteStartupIdea,
-  addProgressSnap,
-  getProgressSnaps,
-  deleteProgressSnap,
-  getPendingStartupIdeas,
-  updateStartupIdeaStatus,
-  toggleSupportBadge,
+  updateMyProject,
+  deleteMyProject,
+  getMyProject,
+  getAllSupervisors,
 } from '../controllers/startupIdeaController.js';
-import { authenticate, isCenterAdmin } from '../middleware/auth.middleware.js';
+import { authenticate } from '../middleware/auth.middleware.js';
 import { body, param } from 'express-validator';
 import { validate } from '../middleware/validator.middleware.js';
 
@@ -23,14 +18,52 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Startup Space
- *   description: Startup ideas and entrepreneurship
+ *   description: Startup ideas and entrepreneurship supervision system
  */
 
 /**
  * @swagger
  * /api/startup-ideas:
+ *   get:
+ *     summary: Get all public startup ideas (Sparks Hub)
+ *     tags: [Startup Space]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [Technology, Education, Healthcare, Environment, Innovation, AI, Mobile, Web, Social Impact, Business, Design, Science]
+ *         description: Filter by project category
+ *       - in: query
+ *         name: stage
+ *         schema:
+ *           type: string
+ *           enum: [idea, prototype, mvp, growth]
+ *         description: Filter by project stage
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in title and description
+ *     responses:
+ *       200:
+ *         description: List of public startup ideas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 count:
+ *                   type: number
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
  *   post:
- *     summary: Create a new startup idea
+ *     summary: Create a new startup idea (One project per user)
  *     tags: [Startup Space]
  *     security:
  *       - BearerAuth: []
@@ -44,7 +77,90 @@ const router = express.Router();
  *               - title
  *               - description
  *               - category
- *               - center
+ *               - problemStatement
+ *               - solution
+ *               - targetMarket
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: AI-Powered Study Assistant
+ *               description:
+ *                 type: string
+ *                 maxLength: 2000
+ *                 example: An intelligent platform to help students learn more effectively
+ *               category:
+ *                 type: string
+ *                 enum: [Technology, Education, Healthcare, Environment, Innovation, AI, Mobile, Web, Social Impact, Business, Design, Science]
+ *                 example: AI
+ *               problemStatement:
+ *                 type: string
+ *                 maxLength: 1000
+ *                 example: Students struggle to organize their study materials
+ *               solution:
+ *                 type: string
+ *                 maxLength: 1000
+ *                 example: AI-powered platform that creates personalized study plans
+ *               targetMarket:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: University students aged 18-25
+ *               stage:
+ *                 type: string
+ *                 enum: [idea, prototype, mvp, growth]
+ *                 example: idea
+ *     responses:
+ *       201:
+ *         description: Startup idea created successfully
+ *       400:
+ *         description: User already has a project or validation error
+ */
+
+/**
+ * @swagger
+ * /api/startup-ideas/{id}:
+ *   get:
+ *     summary: Get single startup idea by ID
+ *     tags: [Startup Space]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Startup idea ID
+ *     responses:
+ *       200:
+ *         description: Startup idea details (accessible if public OR owner OR supervisor)
+ *       403:
+ *         description: Not authorized to view this project
+ *       404:
+ *         description: Startup idea not found
+ */
+
+/**
+ * @swagger
+ * /api/startup-ideas/my-project:
+ *   get:
+ *     summary: Get my startup project
+ *     tags: [Startup Space]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User's startup project
+ *       404:
+ *         description: No project found
+ *   put:
+ *     summary: Update my startup project
+ *     tags: [Startup Space]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
  *             properties:
  *               title:
  *                 type: string
@@ -54,242 +170,55 @@ const router = express.Router();
  *                 maxLength: 2000
  *               category:
  *                 type: string
- *                 enum: [football, basketball, volleyball, chess, arts, music, theatre, coding, gaming, education, volunteering, culture, tech, health, entrepreneurship, design, marketing, other]
- *               center:
- *                 type: string
- *     responses:
- *       201:
- *         description: Startup idea created with pending status
- *   get:
- *     summary: Get all approved startup ideas
- *     tags: [Startup Space]
- *     parameters:
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *       - in: query
- *         name: center
- *         schema:
- *           type: string
- *       - in: query
- *         name: isSupported
- *         schema:
- *           type: boolean
- *     responses:
- *       200:
- *         description: List of approved startup ideas
- */
-
-/**
- * @swagger
- * /api/startup-ideas/pending:
- *   get:
- *     summary: Get all pending startup ideas (Admin only)
- *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: List of pending ideas
- *       403:
- *         description: Admin access required
- */
-
-/**
- * @swagger
- * /api/startup-ideas/my:
- *   get:
- *     summary: Get my startup ideas
- *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: List of user's startup ideas
- */
-
-/**
- * @swagger
- * /api/startup-ideas/{id}:
- *   get:
- *     summary: Get single startup idea
- *     tags: [Startup Space]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Startup idea details
- *   put:
- *     summary: Update startup idea (Owner only)
- *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               category:
- *                 type: string
- *     responses:
- *       200:
- *         description: Startup idea updated
- *   delete:
- *     summary: Delete startup idea
- *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Startup idea deleted
- */
-
-/**
- * @swagger
- * /api/startup-ideas/{id}/status:
- *   put:
- *     summary: Approve or reject startup idea (Admin only)
- *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [approved, rejected]
- *     responses:
- *       200:
- *         description: Status updated
- */
-
-/**
- * @swagger
- * /api/startup-ideas/{id}/support:
- *   put:
- *     summary: Toggle support badge (Admin only)
- *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - isSupported
- *             properties:
- *               isSupported:
- *                 type: boolean
- *     responses:
- *       200:
- *         description: Support badge updated
- */
-
-/**
- * @swagger
- * /api/startup-ideas/{id}/snaps:
- *   post:
- *     summary: Add progress snap to startup idea
- *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - text
- *             properties:
- *               text:
+ *               problemStatement:
  *                 type: string
  *                 maxLength: 1000
- *               imageUrl:
+ *               solution:
  *                 type: string
- *                 description: Optional pre-uploaded Cloudinary image URL
- *     responses:
- *       201:
- *         description: Progress snap added
- *   get:
- *     summary: Get all progress snaps for a startup idea
- *     tags: [Startup Space]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *                 maxLength: 1000
+ *               targetMarket:
+ *                 type: string
+ *                 maxLength: 500
+ *               stage:
+ *                 type: string
+ *                 enum: [idea, prototype, mvp, growth]
  *     responses:
  *       200:
- *         description: List of progress snaps
+ *         description: Project updated successfully
+ *       404:
+ *         description: No project found
+ *   delete:
+ *     summary: Delete my startup project
+ *     tags: [Startup Space]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Project deleted successfully
+ *       404:
+ *         description: No project found
  */
 
 /**
  * @swagger
- * /api/startup-ideas/snaps/{snapId}:
- *   delete:
- *     summary: Delete progress snap
+ * /api/users/supervisors:
+ *   get:
+ *     summary: Get all available supervisors
  *     tags: [Startup Space]
- *     security:
- *       - BearerAuth: []
  *     parameters:
- *       - in: path
- *         name: snapId
- *         required: true
+ *       - in: query
+ *         name: expertise
  *         schema:
  *           type: string
+ *         description: Filter by supervisor expertise area
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in name, title, or bio
  *     responses:
  *       200:
- *         description: Progress snap deleted
+ *         description: List of available supervisors
  */
 
 // Validation rules
@@ -300,78 +229,79 @@ const createStartupIdeaValidation = [
     .notEmpty()
     .withMessage('Description is required')
     .isLength({ max: 2000 }),
-  body('category').trim().notEmpty().withMessage('Category is required'),
-  body('center').isMongoId().withMessage('Valid center ID is required'),
+  body('category')
+    .trim()
+    .notEmpty()
+    .withMessage('Category is required')
+    .isIn([
+      'Technology',
+      'Education',
+      'Healthcare',
+      'Environment',
+      'Innovation',
+      'AI',
+      'Mobile',
+      'Web',
+      'Social Impact',
+      'Business',
+      'Design',
+      'Science',
+    ]),
+  body('problemStatement')
+    .trim()
+    .notEmpty()
+    .withMessage('Problem statement is required')
+    .isLength({ max: 1000 }),
+  body('solution').trim().notEmpty().withMessage('Solution is required').isLength({ max: 1000 }),
+  body('targetMarket')
+    .trim()
+    .notEmpty()
+    .withMessage('Target market is required')
+    .isLength({ max: 500 }),
+  body('stage')
+    .optional()
+    .isIn(['idea', 'prototype', 'mvp', 'growth'])
+    .withMessage('Invalid stage'),
   validate,
 ];
 
 const updateStartupIdeaValidation = [
   body('title').optional().trim().isLength({ max: 100 }),
   body('description').optional().trim().isLength({ max: 2000 }),
-  body('category').optional().trim(),
-  validate,
-];
-
-const addProgressSnapValidation = [
-  body('text').trim().notEmpty().withMessage('Progress text is required').isLength({ max: 1000 }),
-  body('imageUrl').optional().isURL().withMessage('Invalid image URL'),
-  validate,
-];
-
-const updateStatusValidation = [
-  body('status').isIn(['approved', 'rejected']).withMessage('Status must be approved or rejected'),
-  validate,
-];
-
-const toggleSupportValidation = [
-  body('isSupported').isBoolean().withMessage('isSupported must be a boolean'),
+  body('category')
+    .optional()
+    .trim()
+    .isIn([
+      'Technology',
+      'Education',
+      'Healthcare',
+      'Environment',
+      'Innovation',
+      'AI',
+      'Mobile',
+      'Web',
+      'Social Impact',
+      'Business',
+      'Design',
+      'Science',
+    ]),
+  body('problemStatement').optional().trim().isLength({ max: 1000 }),
+  body('solution').optional().trim().isLength({ max: 1000 }),
+  body('targetMarket').optional().trim().isLength({ max: 500 }),
+  body('stage').optional().isIn(['idea', 'prototype', 'mvp', 'growth']),
   validate,
 ];
 
 const mongoIdValidation = [param('id').isMongoId().withMessage('Invalid ID format'), validate];
 
-// Admin routes (must come before dynamic routes)
-router.get('/pending', authenticate, isCenterAdmin, getPendingStartupIdeas);
-router.put(
-  '/:id/status',
-  authenticate,
-  isCenterAdmin,
-  mongoIdValidation,
-  updateStatusValidation,
-  updateStartupIdeaStatus
-);
-router.put(
-  '/:id/support',
-  authenticate,
-  isCenterAdmin,
-  mongoIdValidation,
-  toggleSupportValidation,
-  toggleSupportBadge
-);
+// Routes
+router.get('/supervisors', getAllSupervisors);
+router.get('/my-project', authenticate, getMyProject);
+router.put('/my-project', authenticate, updateStartupIdeaValidation, updateMyProject);
+router.delete('/my-project', authenticate, deleteMyProject);
 
-// Public and user routes
 router.post('/', authenticate, createStartupIdeaValidation, createStartupIdea);
 router.get('/', getAllStartupIdeas);
-router.get('/my', authenticate, getMyStartupIdeas);
 router.get('/:id', mongoIdValidation, getStartupIdeaById);
-router.put('/:id', authenticate, mongoIdValidation, updateStartupIdeaValidation, updateStartupIdea);
-router.delete('/:id', authenticate, mongoIdValidation, deleteStartupIdea);
-
-// Progress Snap routes
-router.post(
-  '/:id/snaps',
-  authenticate,
-  mongoIdValidation,
-  addProgressSnapValidation,
-  addProgressSnap
-);
-router.get('/:id/snaps', mongoIdValidation, getProgressSnaps);
-router.delete(
-  '/snaps/:snapId',
-  authenticate,
-  param('snapId').isMongoId(),
-  validate,
-  deleteProgressSnap
-);
 
 export default router;

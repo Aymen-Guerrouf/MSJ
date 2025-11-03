@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { API_ENDPOINTS, apiCall } from "../../../config/api";
+import { API_ENDPOINTS, apiCall } from "../../../../config/api";
 
 const { width } = Dimensions.get("window");
 

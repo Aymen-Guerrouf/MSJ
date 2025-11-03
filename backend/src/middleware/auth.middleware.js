@@ -8,10 +8,16 @@ import logger from '../config/logger.config.js';
  */
 const authenticate = async (req, res, next) => {
   try {
-    // Get token from header
+    // Get token from cookies OR Authorization header
+    let token = req.cookies.token;
 
-    const token = req.cookies.token;
-    console.log(333, req.cookies.token);
+    // If no cookie token, check Authorization header
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7); // Remove 'Bearer ' prefix
+      }
+    }
 
     if (!token) {
       return res.status(401).json({
@@ -22,7 +28,6 @@ const authenticate = async (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, config.jwt.secret);
-    console.log(decoded);
 
     // Check if user still exists
     const user = await User.findById(decoded.userId);

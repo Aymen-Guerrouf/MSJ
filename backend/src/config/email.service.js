@@ -264,4 +264,149 @@ The MSJ Team`;
   });
 };
 
-export { sendEmail, sendPasswordResetEmail, sendEmailVerification };
+const sendProjectRequestEmail = async (supervisor, entrepreneur, project, requestId, message) => {
+  const approveUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/project-requests/${requestId}/respond?status=approved`;
+  const rejectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/project-requests/${requestId}/respond?status=rejected`;
+
+  const text = `Hi ${supervisor.name},
+
+${entrepreneur.name} has requested your supervision for their startup project!
+
+PROJECT DETAILS:
+Title: ${project.title}
+Category: ${project.category}
+Stage: ${project.stage || 'idea'}
+
+${message ? `MESSAGE FROM ENTREPRENEUR:\n"${message}"\n` : ''}
+To respond to this request, please use one of the links below:
+
+Approve: ${approveUrl}
+Reject: ${rejectUrl}
+
+Best regards,
+The MSJ Sparks Hub Team`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 40px 20px; text-align: center;">
+        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
+                🚀 New Supervision Request
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                Hi <strong>${supervisor.name}</strong>,
+              </p>
+              
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
+                <strong>${entrepreneur.name}</strong> has requested your supervision for their startup project!
+              </p>
+
+              <!-- Project Details Box -->
+              <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 30px 0; border-radius: 6px;">
+                <h3 style="color: #667eea; margin: 0 0 15px; font-size: 18px;">📋 Project Details</h3>
+                <p style="color: #333333; margin: 8px 0; font-size: 15px;">
+                  <strong>Title:</strong> ${project.title}
+                </p>
+                <p style="color: #333333; margin: 8px 0; font-size: 15px;">
+                  <strong>Category:</strong> ${project.category}
+                </p>
+                <p style="color: #333333; margin: 8px 0; font-size: 15px;">
+                  <strong>Stage:</strong> ${project.stage || 'idea'}
+                </p>
+                ${
+                  project.problemStatement
+                    ? `<p style="color: #555555; margin: 15px 0 8px; font-size: 14px;">
+                  <strong>Problem:</strong> ${project.problemStatement.substring(0, 150)}${project.problemStatement.length > 150 ? '...' : ''}
+                </p>`
+                    : ''
+                }
+              </div>
+
+              ${
+                message
+                  ? `
+              <!-- Message from Entrepreneur -->
+              <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 30px 0; border-radius: 6px;">
+                <h3 style="color: #856404; margin: 0 0 10px; font-size: 16px;">💬 Message from ${entrepreneur.name}</h3>
+                <p style="color: #333333; margin: 0; font-size: 15px; font-style: italic;">
+                  "${message}"
+                </p>
+              </div>
+              `
+                  : ''
+              }
+
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 30px 0 20px;">
+                Please review the project and respond:
+              </p>
+
+              <!-- Action Buttons -->
+              <table role="presentation" style="width: 100%; margin: 30px 0;">
+                <tr>
+                  <td style="padding: 10px; text-align: center;">
+                    <a href="${approveUrl}" style="display: inline-block; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);">
+                      ✅ Approve & Supervise
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px; text-align: center;">
+                    <a href="${rejectUrl}" style="display: inline-block; background-color: #e0e0e0; color: #555555; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                      ❌ Decline Request
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="background-color: #e8f4fd; border-left: 4px solid #2196f3; padding: 15px; margin: 30px 0; border-radius: 6px;">
+                <p style="color: #1565c0; margin: 0; font-size: 14px;">
+                  ℹ️ <strong>Note:</strong> Once you approve, the project will become public in the Sparks Hub and you'll be listed as the supervisor.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+              <p style="color: #666666; font-size: 14px; margin: 0 0 10px;">
+                This email was sent from the MSJ Sparks Hub
+              </p>
+              <p style="color: #999999; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} MSJ. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await sendEmail({
+    email: supervisor.email,
+    subject: '🚀 New Supervision Request - MSJ Sparks Hub',
+    message: text,
+    html,
+  });
+};
+
+export { sendEmail, sendPasswordResetEmail, sendEmailVerification, sendProjectRequestEmail };

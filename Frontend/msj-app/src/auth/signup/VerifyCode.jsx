@@ -65,7 +65,8 @@ export default function VerifyCode() {
         }
       }
 
-      navigation.replace("HomeTab");
+      // Navigate to interest selection screen
+      navigation.replace("InterestSelection");
     } catch (err) {
       setServerError(err?.message || "Unable to verify code");
     } finally {

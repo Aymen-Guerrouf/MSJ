@@ -1,25 +1,22 @@
-// screens/Events/Events.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Image,
   TextInput,
   ActivityIndicator,
   Alert,
-  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
+import { LinearGradient } from "expo-linear-gradient";
 import { API_ENDPOINTS, getAuthHeaders } from "../../../config/api";
+import { styles } from "./Events.styles";
 
 const TEAL = "rgba(107,174,151,1)";
-const SLATE = "#1F2F3A";
-const LIGHT_GRAY = "#E8EDEF";
+const MINT = "rgba(150,214,195,1)";
 
 export default function Events() {
   const navigation = useNavigation();
@@ -28,7 +25,6 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState("Both"); // "Events", "Workshops", or "Both"
 
   const categories = useMemo(
     () => ["All", "Design", "Culture and pr", "Sport", "Enterprise"],
@@ -104,16 +100,6 @@ export default function Events() {
   const filteredEvents = searchFilter(filterByCategory(events));
   const filteredWorkshops = searchFilter(filterByCategory(workshops));
 
-  const toggleFilterType = () => {
-    if (filterType === "Both") setFilterType("Events");
-    else if (filterType === "Events") setFilterType("Workshops");
-    else setFilterType("Both");
-  };
-
-  const shouldShowEvents = filterType === "Both" || filterType === "Events";
-  const shouldShowWorkshops =
-    filterType === "Both" || filterType === "Workshops";
-
   const formatDate = (dateString) => {
     if (!dateString) return "TBA";
     const date = new Date(dateString);
@@ -126,12 +112,25 @@ export default function Events() {
 
   return (
     <View style={styles.container}>
-      {/* Single vertical scroller for the page to avoid nested scroll bounce/gaps */}
+      <TouchableOpacity
+        style={styles.chatbotButton}
+        onPress={() => navigation.navigate("Chatbot")}
+        activeOpacity={0.9}
+      >
+        <LinearGradient
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          colors={[MINT, TEAL]}
+          style={styles.chatbotButtonGradient}
+        >
+          <Ionicons name="sparkles" size={28} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={styles.pageContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Search */}
         <View style={styles.searchContainer}>
           <Ionicons
             name="search-outline"
@@ -147,16 +146,8 @@ export default function Events() {
             onChangeText={setSearchQuery}
             returnKeyType="search"
           />
-          <TouchableOpacity
-            style={styles.filterIcon}
-            onPress={toggleFilterType}
-          >
-            <Ionicons name="options-outline" size={18} color={TEAL} />
-            <Text style={styles.filterTypeText}>{filterType}</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Category chips (slim, inline) */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -181,43 +172,59 @@ export default function Events() {
           })}
         </ScrollView>
 
-        {/* Loading or lists */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={TEAL} />
           </View>
         ) : (
           <>
-            {shouldShowEvents &&
-              filteredEvents.map((event) => (
-                <EventCard
-                  key={event._id || event.id}
-                  event={event}
-                  navigation={navigation}
-                  formatDate={formatDate}
-                />
-              ))}
+            {filteredEvents.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Events</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                >
+                  {filteredEvents.map((event) => (
+                    <EventCard
+                      key={event._id || event.id}
+                      event={event}
+                      navigation={navigation}
+                      formatDate={formatDate}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-            {shouldShowWorkshops &&
-              filteredWorkshops.map((workshop) => (
-                <WorkshopCard
-                  key={workshop._id || workshop.id}
-                  workshop={workshop}
-                  navigation={navigation}
-                  formatDate={formatDate}
-                />
-              ))}
+            {filteredWorkshops.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Workshops</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                >
+                  {filteredWorkshops.map((workshop) => (
+                    <WorkshopCard
+                      key={workshop._id || workshop.id}
+                      workshop={workshop}
+                      navigation={navigation}
+                      formatDate={formatDate}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-            {((shouldShowEvents && filteredEvents.length === 0) ||
-              !shouldShowEvents) &&
-              ((shouldShowWorkshops && filteredWorkshops.length === 0) ||
-                !shouldShowWorkshops) && (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>
-                    No {filterType.toLowerCase()} found
-                  </Text>
-                </View>
-              )}
+            {filteredEvents.length === 0 && filteredWorkshops.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  No events or workshops found
+                </Text>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -225,7 +232,6 @@ export default function Events() {
   );
 }
 
-// Event Card
 function EventCard({ event, navigation, formatDate }) {
   return (
     <TouchableOpacity
@@ -279,7 +285,6 @@ function EventCard({ event, navigation, formatDate }) {
   );
 }
 
-// Workshop Card
 function WorkshopCard({ workshop, navigation, formatDate }) {
   return (
     <TouchableOpacity
@@ -340,106 +345,3 @@ function WorkshopCard({ workshop, navigation, formatDate }) {
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-
-  // Page content wraps everything in one vertical scroll
-  pageContent: {
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 50 : 40, // top padding for status bar
-    paddingBottom: 100, // Extra padding to prevent bottom navbar from hiding items
-  },
-
-  // Search
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 14, color: SLATE },
-  filterIcon: {
-    padding: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  filterTypeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: TEAL,
-    marginLeft: 2,
-  },
-
-  // Slim chips row
-  chipsContainer: {
-    paddingVertical: 16,
-    gap: 10,
-    marginTop: 8,
-  },
-  chip: {
-    height: 38,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: TEAL,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  chipActive: { backgroundColor: TEAL, borderColor: TEAL },
-  chipText: { fontSize: 14, fontWeight: "700", color: TEAL },
-  chipTextActive: { color: "#fff" },
-
-  // Loader
-  loadingContainer: {
-    paddingVertical: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Cards
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    overflow: "hidden",
-  },
-  cardImage: { width: "100%", height: 170, backgroundColor: LIGHT_GRAY },
-  cardContent: { padding: 12 },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: SLATE, marginBottom: 8 },
-  cardMeta: { flexDirection: "row", gap: 12, marginBottom: 10 },
-  cardMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  cardMetaText: { fontSize: 12, color: "#7A8A9A", fontWeight: "500" },
-  cardTags: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  categoryTag: { backgroundColor: "#E8F3FF", borderColor: "#4A90E2" },
-  categoryTagText: { fontSize: 11, fontWeight: "700", color: "#4A90E2" },
-  seatsTag: { backgroundColor: "#EEF3F6", borderColor: "#6D8B99" },
-  seatsTagText: { fontSize: 11, fontWeight: "700", color: "#6D8B99" },
-  durationTag: { backgroundColor: "#FFE8F0", borderColor: "#E94B8B" },
-  durationTagText: { fontSize: 11, fontWeight: "700", color: "#E94B8B" },
-  priceTag: { backgroundColor: "#FFF4E6", borderColor: "#F59E0B" },
-  priceTagText: { fontSize: 11, fontWeight: "800", color: "#F59E0B" },
-
-  // Empty state
-  emptyContainer: { paddingVertical: 40, alignItems: "center" },
-  emptyText: { fontSize: 14, color: "#7A8A9A", fontStyle: "italic" },
-});

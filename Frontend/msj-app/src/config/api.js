@@ -74,6 +74,26 @@ export const API_ENDPOINTS = {
     CARDS: `${API_BASE_URL}/api/experience-cards`,
     CARD: (id) => `${API_BASE_URL}/api/experience-cards/${id}`,
   },
+  SPARKS: {
+    LIST: `${API_BASE_URL}/api/startup-ideas`,
+    CREATE: `${API_BASE_URL}/api/startup-ideas`,
+    MY_PROJECT: `${API_BASE_URL}/api/startup-ideas/my-project`,
+    DETAIL: (id) => `${API_BASE_URL}/api/startup-ideas/${id}`,
+    SUPERVISORS: `${API_BASE_URL}/api/startup-ideas/supervisors`,
+  },
+  PROJECT_REQUESTS: {
+    CREATE: `${API_BASE_URL}/api/project-requests`,
+    MY_REQUESTS: `${API_BASE_URL}/api/project-requests/my-requests`,
+    RESPOND: (id) => `${API_BASE_URL}/api/project-requests/${id}/respond`,
+    CANCEL: (id) => `${API_BASE_URL}/api/project-requests/${id}`,
+  },
+  CHATBOT: {
+    CHAT: `${API_BASE_URL}/api/user/chat`,
+  },
+  USER: {
+    UPDATE_INTERESTS: `${API_BASE_URL}/api/user/interests`,
+    ME: `${API_BASE_URL}/api/user/me`,
+  },
 };
 
 // Helper function to get auth headers

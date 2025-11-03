@@ -1,406 +1,302 @@
 import StartupIdea from '../models/startupIdea.model.js';
+import User from '../models/user.model.js';
 import ProgressSnap from '../models/progressSnap.model.js';
 
 /**
- * Create a new startup idea
- * POST /api/startup-ideas
+ * @desc    Get all public startup ideas (Sparks Hub)
+ * @route   GET /api/startup-ideas
+ * @access  Public
+ */
+export const getAllStartupIdeas = async (req, res, next) => {
+  try {
+    const { category, stage, search } = req.query;
+
+    const filter = { status: 'public' }; // Only show public projects
+
+    if (category) filter.category = category;
+    if (stage) filter.stage = stage;
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const startupIdeas = await StartupIdea.find(filter)
+      .populate('owner', 'name email')
+      .populate('supervisor', 'name supervisorTitle')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: startupIdeas.length,
+      data: startupIdeas,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Get single startup idea by ID
+ * @route   GET /api/startup-ideas/:id
+ * @access  Public (but restricted based on status)
+ */
+export const getStartupIdeaById = async (req, res, next) => {
+  try {
+    const startupIdea = await StartupIdea.findById(req.params.id)
+      .populate('owner', 'name email')
+      .populate('supervisor', 'name supervisorTitle supervisorBio supervisorExpertise')
+      .populate('progressUpdates');
+
+    if (!startupIdea) {
+      return res.status(404).json({
+        success: false,
+        message: 'Startup idea not found',
+      });
+    }
+
+    // Only show public projects or if user is owner/supervisor
+    if (startupIdea.status !== 'public') {
+      if (!req.user) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to view this project',
+        });
+      }
+
+      const isOwner = req.user._id.toString() === startupIdea.owner._id.toString();
+      const isSupervisor =
+        startupIdea.supervisor && req.user._id.toString() === startupIdea.supervisor._id.toString();
+
+      if (!isOwner && !isSupervisor) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to view this project',
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: startupIdea,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Get all supervisors (users with isSupervisor: true)
+ * @route   GET /api/users/supervisors
+ * @access  Public
+ */
+export const getAllSupervisors = async (req, res, next) => {
+  try {
+    const { expertise, search } = req.query;
+
+    const filter = { isSupervisor: true };
+
+    if (expertise) {
+      filter.supervisorExpertise = expertise;
+    }
+
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { supervisorTitle: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const supervisors = await User.find(filter)
+      .select('name email supervisorTitle supervisorBio supervisorExpertise')
+      .sort({ name: 1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: supervisors.length,
+      data: supervisors,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Create new startup idea
+ * @route   POST /api/startup-ideas
+ * @access  Private
  */
 export const createStartupIdea = async (req, res, next) => {
   try {
-    const { title, description, category, center } = req.body;
+    const {
+      title,
+      description,
+      category,
+      images,
+      problemStatement,
+      solution,
+      targetMarket,
+      businessModel,
+      stage,
+      needs,
+      teamMembers,
+    } = req.body;
+
+    // Check if user already has a project
+    const existingProject = await StartupIdea.findOne({ owner: req.user._id });
+    if (existingProject) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have a project. You can only create one project at a time.',
+      });
+    }
 
     const startupIdea = await StartupIdea.create({
       title,
       description,
       category,
-      center,
+      images: images || [],
+      problemStatement,
+      solution,
+      targetMarket,
+      businessModel: businessModel || 'Not Sure Yet',
+      stage: stage || 'Idea',
+      needs: needs || [],
+      teamMembers: teamMembers || [],
       owner: req.user._id,
       status: 'pending', // Default status
     });
 
-    await startupIdea.populate('owner', 'name email');
-    await startupIdea.populate('center', 'name location');
+    const populatedIdea = await StartupIdea.findById(startupIdea._id).populate(
+      'owner',
+      'name email'
+    );
 
     res.status(201).json({
       success: true,
       message: 'Startup idea created successfully',
-      data: { startupIdea },
+      data: populatedIdea,
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
 /**
- * Get all approved startup ideas (public feed)
- * GET /api/startup-ideas
+ * @desc    Get entrepreneur's own project dashboard
+ * @route   GET /api/startup-ideas/my-project
+ * @access  Private
  */
-export const getAllStartupIdeas = async (req, res, next) => {
+export const getMyProject = async (req, res, next) => {
   try {
-    const { category, center, isSupported } = req.query;
+    const project = await StartupIdea.findOne({ owner: req.user._id })
+      .populate('supervisor', 'name supervisorTitle supervisorBio supervisorExpertise')
+      .populate('progressUpdates');
 
-    const filter = { status: 'approved' }; // Only show approved ideas
-
-    if (category) filter.category = category;
-    if (center) filter.center = center;
-    if (isSupported !== undefined) filter.isSupported = isSupported === 'true';
-
-    const startupIdeas = await StartupIdea.find(filter)
-      .populate('owner', 'name email age')
-      .populate('center', 'name location')
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      count: startupIdeas.length,
-      data: { startupIdeas },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Get current user's startup ideas
- * GET /api/startup-ideas/my
- */
-export const getMyStartupIdeas = async (req, res, next) => {
-  try {
-    const startupIdeas = await StartupIdea.find({ owner: req.user._id })
-      .populate('center', 'name location')
-      .populate('progressSnaps')
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      count: startupIdeas.length,
-      data: { startupIdeas },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Get single startup idea by ID
- * GET /api/startup-ideas/:id
- */
-export const getStartupIdeaById = async (req, res, next) => {
-  try {
-    const startupIdea = await StartupIdea.findById(req.params.id)
-      .populate('owner', 'name email age isMentor mentorExpertise')
-      .populate('center', 'name location')
-      .populate({
-        path: 'progressSnaps',
-        populate: { path: 'owner', select: 'name' },
-      });
-
-    if (!startupIdea) {
+    if (!project) {
       return res.status(404).json({
         success: false,
-        message: 'Startup idea not found',
+        message: 'You do not have a project yet',
       });
     }
 
     res.json({
       success: true,
-      data: { startupIdea },
+      data: project,
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
 /**
- * Update startup idea (owner only)
- * PUT /api/startup-ideas/:id
+ * @desc    Update entrepreneur's own project
+ * @route   PUT /api/startup-ideas/my-project
+ * @access  Private
  */
-export const updateStartupIdea = async (req, res, next) => {
+export const updateMyProject = async (req, res, next) => {
   try {
-    const startupIdea = await StartupIdea.findById(req.params.id);
+    const project = await StartupIdea.findOne({ owner: req.user._id });
 
-    if (!startupIdea) {
+    if (!project) {
       return res.status(404).json({
         success: false,
-        message: 'Startup idea not found',
+        message: 'You do not have a project to update',
       });
     }
 
-    // Check ownership
-    if (startupIdea.owner.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this startup idea',
-      });
-    }
+    const {
+      title,
+      description,
+      category,
+      images,
+      problemStatement,
+      solution,
+      targetMarket,
+      businessModel,
+      stage,
+      needs,
+      teamMembers,
+    } = req.body;
 
-    const { title, description, category } = req.body;
+    // Update fields if provided
+    if (title) project.title = title;
+    if (description) project.description = description;
+    if (category) project.category = category;
+    if (images !== undefined) project.images = images;
+    if (problemStatement) project.problemStatement = problemStatement;
+    if (solution) project.solution = solution;
+    if (targetMarket) project.targetMarket = targetMarket;
+    if (businessModel) project.businessModel = businessModel;
+    if (stage) project.stage = stage;
+    if (needs !== undefined) project.needs = needs;
+    if (teamMembers !== undefined) project.teamMembers = teamMembers;
 
-    if (title) startupIdea.title = title;
-    if (description) startupIdea.description = description;
-    if (category) startupIdea.category = category;
+    await project.save();
 
-    await startupIdea.save();
-    await startupIdea.populate('owner', 'name email');
-    await startupIdea.populate('center', 'name location');
+    const updatedProject = await StartupIdea.findById(project._id)
+      .populate('supervisor', 'name supervisorTitle')
+      .populate('progressUpdates');
 
     res.json({
       success: true,
-      message: 'Startup idea updated successfully',
-      data: { startupIdea },
+      message: 'Project updated successfully',
+      data: updatedProject,
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
 /**
- * Delete startup idea (owner or admin)
- * DELETE /api/startup-ideas/:id
+ * @desc    Delete entrepreneur's own project
+ * @route   DELETE /api/startup-ideas/my-project
+ * @access  Private
  */
-export const deleteStartupIdea = async (req, res, next) => {
+export const deleteMyProject = async (req, res, next) => {
   try {
-    const startupIdea = await StartupIdea.findById(req.params.id);
+    const project = await StartupIdea.findOne({ owner: req.user._id });
 
-    if (!startupIdea) {
+    if (!project) {
       return res.status(404).json({
         success: false,
-        message: 'Startup idea not found',
-      });
-    }
-
-    // Check ownership or admin
-    const isOwner = startupIdea.owner.toString() === req.user._id.toString();
-    const isAdmin = ['center_admin', 'super_admin'].includes(req.user.role);
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this startup idea',
+        message: 'You do not have a project to delete',
       });
     }
 
     // Delete associated progress snaps
-    await ProgressSnap.deleteMany({ startupIdea: startupIdea._id });
+    await ProgressSnap.deleteMany({ startupIdea: project._id });
 
-    await startupIdea.deleteOne();
-
-    res.json({
-      success: true,
-      message: 'Startup idea deleted successfully',
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Add progress snap to startup idea
- * POST /api/startup-ideas/:id/snaps
- */
-export const addProgressSnap = async (req, res, next) => {
-  try {
-    const startupIdea = await StartupIdea.findById(req.params.id);
-
-    if (!startupIdea) {
-      return res.status(404).json({
-        success: false,
-        message: 'Startup idea not found',
-      });
-    }
-
-    // Check ownership
-    if (startupIdea.owner.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to add progress to this startup idea',
-      });
-    }
-
-    const { text, imageUrl } = req.body;
-
-    const progressSnap = await ProgressSnap.create({
-      startupIdea: startupIdea._id,
-      text,
-      imageUrl,
-      owner: req.user._id,
-    });
-
-    await progressSnap.populate('owner', 'name');
-
-    res.status(201).json({
-      success: true,
-      message: 'Progress snap added successfully',
-      data: { progressSnap },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Get all progress snaps for a startup idea
- * GET /api/startup-ideas/:id/snaps
- */
-export const getProgressSnaps = async (req, res, next) => {
-  try {
-    const startupIdea = await StartupIdea.findById(req.params.id);
-
-    if (!startupIdea) {
-      return res.status(404).json({
-        success: false,
-        message: 'Startup idea not found',
-      });
-    }
-
-    const progressSnaps = await ProgressSnap.find({ startupIdea: req.params.id })
-      .populate('owner', 'name')
-      .sort({ createdAt: -1 });
+    await project.deleteOne();
 
     res.json({
       success: true,
-      count: progressSnaps.length,
-      data: { progressSnaps },
+      message: 'Project deleted successfully',
     });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Delete progress snap (owner or admin)
- * DELETE /api/startup-ideas/snaps/:snapId
- */
-export const deleteProgressSnap = async (req, res, next) => {
-  try {
-    const progressSnap = await ProgressSnap.findById(req.params.snapId);
-
-    if (!progressSnap) {
-      return res.status(404).json({
-        success: false,
-        message: 'Progress snap not found',
-      });
-    }
-
-    // Check ownership or admin
-    const isOwner = progressSnap.owner.toString() === req.user._id.toString();
-    const isAdmin = ['center_admin', 'super_admin'].includes(req.user.role);
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this progress snap',
-      });
-    }
-
-    await progressSnap.deleteOne();
-
-    res.json({
-      success: true,
-      message: 'Progress snap deleted successfully',
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Get all pending startup ideas (admin only)
- * GET /api/startup-ideas/pending
- */
-export const getPendingStartupIdeas = async (req, res, next) => {
-  try {
-    const startupIdeas = await StartupIdea.find({ status: 'pending' })
-      .populate('owner', 'name email age')
-      .populate('center', 'name location')
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      count: startupIdeas.length,
-      data: { startupIdeas },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Update startup idea status (admin only)
- * PUT /api/startup-ideas/:id/status
- */
-export const updateStartupIdeaStatus = async (req, res, next) => {
-  try {
-    const { status } = req.body;
-
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Status must be either "approved" or "rejected"',
-      });
-    }
-
-    const startupIdea = await StartupIdea.findById(req.params.id);
-
-    if (!startupIdea) {
-      return res.status(404).json({
-        success: false,
-        message: 'Startup idea not found',
-      });
-    }
-
-    startupIdea.status = status;
-    await startupIdea.save();
-
-    await startupIdea.populate('owner', 'name email');
-    await startupIdea.populate('center', 'name location');
-
-    res.json({
-      success: true,
-      message: `Startup idea ${status} successfully`,
-      data: { startupIdea },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Toggle support badge (admin only)
- * PUT /api/startup-ideas/:id/support
- */
-export const toggleSupportBadge = async (req, res, next) => {
-  try {
-    const { isSupported } = req.body;
-
-    if (typeof isSupported !== 'boolean') {
-      return res.status(400).json({
-        success: false,
-        message: 'isSupported must be a boolean value',
-      });
-    }
-
-    const startupIdea = await StartupIdea.findById(req.params.id);
-
-    if (!startupIdea) {
-      return res.status(404).json({
-        success: false,
-        message: 'Startup idea not found',
-      });
-    }
-
-    startupIdea.isSupported = isSupported;
-    await startupIdea.save();
-
-    await startupIdea.populate('owner', 'name email');
-    await startupIdea.populate('center', 'name location');
-
-    res.json({
-      success: true,
-      message: `Support badge ${isSupported ? 'granted' : 'revoked'} successfully`,
-      data: { startupIdea },
-    });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };

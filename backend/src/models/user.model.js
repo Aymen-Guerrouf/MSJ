@@ -103,6 +103,70 @@ const userSchema = new mongoose.Schema(
         ],
       },
     ],
+
+    // --- SUPERVISOR FIELDS (for Startup Projects) ---
+    isSupervisor: {
+      type: Boolean,
+      default: false,
+    },
+    supervisorTitle: {
+      type: String,
+      trim: true,
+      default: null, // e.g., "CEO at StartupX", "Lead Developer", "Product Manager"
+    },
+    supervisorBio: {
+      type: String,
+      default: null,
+      maxlength: [500, 'Supervisor bio cannot exceed 500 characters'],
+    },
+    supervisorExpertise: [
+      {
+        type: String,
+        enum: [
+          // Business & Strategy
+          'Business Development',
+          'Strategic Planning',
+          'Operations Management',
+          'Legal & Compliance',
+          'Entrepreneurship',
+
+          // Technology & Development
+          'Software Development',
+          'AI & Machine Learning',
+          'Data Science',
+          'Hardware & IoT',
+          'Cybersecurity',
+          'Cloud Computing',
+
+          // Finance
+          'Finance & Accounting',
+          'Fundraising & VC',
+          'Fintech',
+
+          // Marketing & Sales
+          'Digital Marketing',
+          'Sales Strategy',
+          'Branding & PR',
+
+          // Product & Design
+          'Product Management',
+          'UI/UX Design',
+          'Industrial Design',
+
+          // Industry Specific
+          'E-commerce',
+          'Healthtech',
+          'EdTech',
+          'Greentech & Sustainability',
+          'AgriTech',
+
+          // People & Other
+          'Human Resources',
+          'Other',
+        ],
+      },
+    ],
+
     // For center admins - which center they manage
     managedCenterId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -133,16 +197,13 @@ const userSchema = new mongoose.Schema(
     },
     createdAt: {
       type: Date,
-      default : Date.now()
-      },
+      default: Date.now(),
+    },
   },
   {
     timestamps: true,
   }
 );
-
-// Create index on email for faster lookups
-userSchema.index({ email: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -239,6 +300,29 @@ userSchema.virtual('myMentorshipRequests', {
   ref: 'MentorshipRequest',
   localField: '_id',
   foreignField: 'mentee',
+});
+
+// --- SUPERVISOR VIRTUAL POPULATES (for Startup Projects) ---
+
+// Virtual populate for projects a supervisor is mentoring/supervising
+userSchema.virtual('supervisedProjects', {
+  ref: 'StartupIdea',
+  localField: '_id',
+  foreignField: 'supervisor',
+});
+
+// Virtual populate for supervision requests received by a supervisor
+userSchema.virtual('projectRequests', {
+  ref: 'ProjectRequest',
+  localField: '_id',
+  foreignField: 'supervisor',
+});
+
+// Virtual populate for supervision requests sent by an entrepreneur
+userSchema.virtual('myProjectRequests', {
+  ref: 'ProjectRequest',
+  localField: '_id',
+  foreignField: 'entrepreneur',
 });
 
 // Enable virtuals in toJSON and toObject

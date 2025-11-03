@@ -4,15 +4,27 @@ export const createVideo = async (req, res, next) => {
   try {
     const { title, category, description, videoUrl, thumbnailUrl, duration, centerId } = req.body;
 
-    if (!title || !category || !videoUrl || !centerId) {
+    // Better validation with specific error messages
+    const missingFields = [];
+    if (!title) missingFields.push('title');
+    if (!category) missingFields.push('category');
+    if (!videoUrl) missingFields.push('videoUrl');
+
+    if (missingFields.length > 0) {
+      console.log('Missing fields:', missingFields);
+      console.log('Received body:', req.body);
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields',
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        missingFields,
       });
     }
 
+    // Only check center authorization if centerId is provided
     if (
-      req.user.role === 'center_admin' &&
+      centerId &&
+      req.user.role === 'super_admin' &&
+      req.user.managedCenterId &&
       req.user.managedCenterId.toString() !== centerId.toString()
     ) {
       return res.status(403).json({
@@ -28,7 +40,7 @@ export const createVideo = async (req, res, next) => {
       videoUrl,
       thumbnailUrl: thumbnailUrl || null,
       duration,
-      centerId,
+      centerId: centerId || null,
       createdBy: req.user._id,
     });
 
@@ -104,6 +116,7 @@ export const updateVideo = async (req, res, next) => {
 
     if (
       req.user.role === 'center_admin' &&
+      req.user.managedCenterId &&
       req.user.managedCenterId.toString() !== video.centerId.toString()
     ) {
       return res.status(403).json({
@@ -145,6 +158,7 @@ export const deleteVideo = async (req, res, next) => {
 
     if (
       req.user.role === 'center_admin' &&
+      req.user.managedCenterId &&
       req.user.managedCenterId.toString() !== video.centerId.toString()
     ) {
       return res.status(403).json({

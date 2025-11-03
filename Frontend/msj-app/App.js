@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SignIn from "./src/auth/SignIn";
 import SignUp from "./src/auth/signup/SignUp";
 import VerifyCode from "./src/auth/signup/VerifyCode";
+import InterestSelection from "./src/auth/signup/InterestSelection";
 import HomeTab from "./src/Home/HomeTab";
 import ForgotPassword from "./src/auth/forgot/ForgotPassword";
 import ResetPassword from "./src/auth/forgot/ResetPassword";
@@ -22,6 +23,7 @@ export default function App() {
         <Stack.Screen name="SignIn" component={SignIn} />
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="VerifyCode" component={VerifyCode} />
+        <Stack.Screen name="InterestSelection" component={InterestSelection} />
         <Stack.Screen name="HomeTab" component={HomeTab} />
         <Stack.Screen name="AdminPanel" component={AdminPanel} />
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
