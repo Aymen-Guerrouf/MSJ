@@ -102,13 +102,6 @@ export const deleteUser = async (req, res) => {
 
 export const getUserById = async (req, res) => {
   try {
-<<<<<<< HEAD
-    console.log(req.user);
-    
-    const userCount = await User.find({role : 'user'}, {_id :0 , createdAt :1 , });
-    const eventCount = await Event.find({centerId : req.user.managedCenterId});
-    const clubcount = await Club.find({centerId : req.user.managedCenterId});
-=======
     const { id } = req.params;
     const user = await User.findById(id);
 
@@ -137,7 +130,6 @@ export const getAdminDashboard = async (req, res) => {
     const userCount = await User.find({ role: 'user' }, { _id: 0, createdAt: 1 });
     const eventCount = await Event.find({ centerId: req.user.managedCenterId });
     const clubcount = await Club.find({ centerId: req.user.managedCenterId });
->>>>>>> 1a3c10ee815f16ccd0399623c734112eb1ded6ef
 
     return res.status(200).json({
       userCount,
