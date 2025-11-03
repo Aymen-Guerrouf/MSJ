@@ -41,7 +41,10 @@ export default function SettingsScreen() {
               await AsyncStorage.multiRemove([
                 "access_token",
                 "user_data",
+                "user",
                 "user_coords",
+                "token_expires_at",
+                "last_login_at",
               ]);
               // Navigate to SignIn screen
               navigation.replace("SignIn");

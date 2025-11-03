@@ -63,6 +63,7 @@ export const Storage = {
     await AsyncStorage.multiRemove([
       "access_token",
       "user",
+      "user_data",
       "user_coords",
       "token_expires_at",
       "last_login_at",
