@@ -1,27 +1,22 @@
-// screens/Events/Events.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Image,
   TextInput,
   ActivityIndicator,
   Alert,
-  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
-
 import { API_ENDPOINTS, getAuthHeaders } from "../../../config/api";
+import { styles } from "./Events.styles";
 
 const TEAL = "rgba(107,174,151,1)";
 const MINT = "rgba(150,214,195,1)";
-const SLATE = "#1F2F3A";
-const LIGHT_GRAY = "#E8EDEF";
 
 export default function Events() {
   const navigation = useNavigation();
@@ -117,7 +112,6 @@ export default function Events() {
 
   return (
     <View style={styles.container}>
-      {/* Fixed AI Chatbot Button */}
       <TouchableOpacity
         style={styles.chatbotButton}
         onPress={() => navigation.navigate("Chatbot")}
@@ -133,12 +127,10 @@ export default function Events() {
         </LinearGradient>
       </TouchableOpacity>
 
-      {/* Single vertical scroller for the page to avoid nested scroll bounce/gaps */}
       <ScrollView
         contentContainerStyle={styles.pageContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Search */}
         <View style={styles.searchContainer}>
           <Ionicons
             name="search-outline"
@@ -156,7 +148,6 @@ export default function Events() {
           />
         </View>
 
-        {/* Category chips (slim, inline) */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -181,14 +172,12 @@ export default function Events() {
           })}
         </ScrollView>
 
-        {/* Loading or lists */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={TEAL} />
           </View>
         ) : (
           <>
-            {/* Events Section */}
             {filteredEvents.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Events</Text>
@@ -209,7 +198,6 @@ export default function Events() {
               </View>
             )}
 
-            {/* Workshops Section */}
             {filteredWorkshops.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Workshops</Text>
@@ -244,7 +232,6 @@ export default function Events() {
   );
 }
 
-// Event Card
 function EventCard({ event, navigation, formatDate }) {
   return (
     <TouchableOpacity
@@ -298,7 +285,6 @@ function EventCard({ event, navigation, formatDate }) {
   );
 }
 
-// Workshop Card
 function WorkshopCard({ workshop, navigation, formatDate }) {
   return (
     <TouchableOpacity
@@ -359,129 +345,3 @@ function WorkshopCard({ workshop, navigation, formatDate }) {
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-
-  // Fixed AI Chatbot Button
-  chatbotButton: {
-    position: "absolute",
-    bottom: 140,
-    right: 16,
-    zIndex: 9999,
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  chatbotButtonGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Page content wraps everything in one vertical scroll
-  pageContent: {
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 50 : 40, // top padding for status bar
-    paddingBottom: 100, // Extra padding to prevent bottom navbar from hiding items
-  },
-
-  // Search
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 14, color: SLATE },
-
-  // Slim chips row
-  chipsContainer: {
-    paddingVertical: 16,
-    gap: 10,
-    marginTop: 8,
-  },
-  chip: {
-    height: 38,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: TEAL,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  chipActive: { backgroundColor: TEAL, borderColor: TEAL },
-  chipText: { fontSize: 14, fontWeight: "700", color: TEAL },
-  chipTextActive: { color: "#fff" },
-
-  // Loader
-  loadingContainer: {
-    paddingVertical: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Sections for horizontal scrolling
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: SLATE,
-    marginBottom: 12,
-  },
-  horizontalList: {
-    paddingRight: 16,
-    gap: 16,
-  },
-
-  // Cards
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    width: 280,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    overflow: "hidden",
-  },
-  cardImage: { width: "100%", height: 170, backgroundColor: LIGHT_GRAY },
-  cardContent: { padding: 12 },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: SLATE, marginBottom: 8 },
-  cardMeta: { flexDirection: "row", gap: 12, marginBottom: 10 },
-  cardMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  cardMetaText: { fontSize: 12, color: "#7A8A9A", fontWeight: "500" },
-  cardTags: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  categoryTag: { backgroundColor: "#E8F3FF", borderColor: "#4A90E2" },
-  categoryTagText: { fontSize: 11, fontWeight: "700", color: "#4A90E2" },
-  seatsTag: { backgroundColor: "#EEF3F6", borderColor: "#6D8B99" },
-  seatsTagText: { fontSize: 11, fontWeight: "700", color: "#6D8B99" },
-  durationTag: { backgroundColor: "#FFE8F0", borderColor: "#E94B8B" },
-  durationTagText: { fontSize: 11, fontWeight: "700", color: "#E94B8B" },
-  priceTag: { backgroundColor: "#FFF4E6", borderColor: "#F59E0B" },
-  priceTagText: { fontSize: 11, fontWeight: "800", color: "#F59E0B" },
-
-  // Empty state
-  emptyContainer: { paddingVertical: 40, alignItems: "center" },
-  emptyText: { fontSize: 14, color: "#7A8A9A", fontStyle: "italic" },
-});

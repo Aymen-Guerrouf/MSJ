@@ -1,13 +1,10 @@
-// src/auth/signin/components/SignIn.jsx
 import React, { useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
-  Platform,
   Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +14,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ENDPOINTS } from "../config/api";
+import { styles } from "./SignIn.styles";
 
 export default function SignIn() {
   const navigation = useNavigation();
@@ -114,18 +112,15 @@ export default function SignIn() {
 
   return (
     <View style={styles.screen}>
-      {/* Logo */}
       <Image
         source={require("../../assets/logo.png")}
         style={styles.logo}
         resizeMode="contain"
       />
 
-      {/* Headings */}
       <Text style={styles.title}>Welcome Back!</Text>
       <Text style={styles.subtitle}>Please enter your account here</Text>
 
-      {/* Email */}
       <View style={styles.row}>
         <View style={styles.leadingIcon}>
           <Ionicons name="mail-outline" size={18} color="#244355" />
@@ -147,7 +142,6 @@ export default function SignIn() {
         <Text style={styles.error}>Enter a valid email</Text>
       ) : null}
 
-      {/* Password */}
       <View style={styles.row}>
         <View style={styles.leadingIcon}>
           <Ionicons name="lock-closed-outline" size={18} color="#244355" />
@@ -185,16 +179,13 @@ export default function SignIn() {
         <Text style={styles.error}>At least 8 characters</Text>
       ) : null}
 
-      {/* Forgot password */}
       <View style={styles.rightLinkWrap}>
         <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
           <Text style={styles.rightLink}>Forgot password?</Text>
         </TouchableOpacity>
       </View>
-
       {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
 
-      {/* CTA */}
       <TouchableOpacity
         style={[styles.cta, (!canSubmit || isSubmitting) && styles.ctaDisabled]}
         onPress={handleSubmit(onSubmit)}
@@ -202,7 +193,6 @@ export default function SignIn() {
         activeOpacity={0.9}
       >
         <LinearGradient
-          // Exact gradient requested: 237deg from mint to teal
           start={{ x: 0.15, y: 1 }}
           end={{ x: 0.95, y: 0.1 }}
           colors={["rgba(150,214,195,1)", "rgba(107,174,151,1)"]}
@@ -216,7 +206,6 @@ export default function SignIn() {
         </LinearGradient>
       </TouchableOpacity>
 
-      {/* Footer */}
       <View style={styles.footerRow}>
         <Text style={styles.footerMuted}>Don’t have any account? </Text>
         <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
@@ -226,121 +215,3 @@ export default function SignIn() {
     </View>
   );
 }
-
-const PALE_GREEN = "rgba(230, 247, 238, 1)";
-const PALE_GREEN_BORDER = "rgba(151, 203, 177, 0.45)";
-const TEXT_DARK = "#1E3A3A";
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    paddingTop: 80,
-    paddingHorizontal: 22,
-  },
-  logo: {
-    alignSelf: "center",
-    width: 120,
-    height: 120,
-    marginBottom: 40,
-  },
-  title: {
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: 0.48,
-    color: "#2E3E5C",
-  },
-  subtitle: {
-    textAlign: "center",
-    fontSize: 14,
-    color: "#8189B0",
-    marginTop: 8,
-    marginBottom: 40,
-  },
-
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: PALE_GREEN,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: PALE_GREEN_BORDER,
-    paddingHorizontal: 12,
-    height: 52,
-    marginBottom: 20,
-  },
-  leadingIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#E1F3EA",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    color: TEXT_DARK,
-    fontSize: 15,
-  },
-  inputWithTrailing: { paddingRight: 8 },
-  trailingIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  inputError: {
-    // subtle red outline while preserving the soft fill
-    borderWidth: 0,
-  },
-  error: {
-    color: "#CC4B4B",
-    fontSize: 12,
-    marginBottom: 8,
-    paddingLeft: 6,
-  },
-
-  rightLinkWrap: { alignItems: "flex-end", marginTop: 8, marginBottom: 28 },
-  rightLink: { color: "#2D8A64", fontSize: 13, fontWeight: "700" },
-
-  cta: {
-    marginTop: 0,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  ctaInner: {
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaDisabled: { opacity: 0.7 },
-  ctaText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 32,
-  },
-  footerMuted: { color: "#3C5568", fontSize: 14 },
-  footerLink: { color: "#2D8A64", fontSize: 14, fontWeight: "700" },
-
-  shadow: Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOpacity: 0.08,
-      shadowRadius: 14,
-      shadowOffset: { width: 0, height: 6 },
-    },
-    android: { elevation: 2 },
-    default: {},
-  }),
-});
